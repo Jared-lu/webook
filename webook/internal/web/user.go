@@ -1,19 +1,22 @@
 package web
 
 import (
+	"errors"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"webook/webook/internal/domain"
+	"webook/webook/internal/service"
 )
 
 // UserHandler 用户模块
 type UserHandler struct {
-	svc         service.Service
+	svc         service.UserService
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
 }
 
-func NewUserHandler(svc service.Service) *UserHandler {
+func NewUserHandler(svc service.UserService) *UserHandler {
 	const (
 		// 邮箱格式
 		emailRegexPattern = "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"
@@ -47,6 +50,9 @@ func (u *UserHandler) RegisterRouter(server *gin.Engine) {
 	server.POST("/users/login", u.Login)
 	server.POST("/users/edit", u.Edit)
 	server.GET("/users/profile", u.Profile)
+	server.GET("/hello", func(ctx *gin.Context) {
+		ctx.String(http.StatusOK, "你好")
+	})
 }
 
 // SignUp 注册
@@ -107,16 +113,22 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 	}
 
 	// 业务处理逻辑
-	err = u.svc.SignUp(ctx.Request.Context(), domain.User{
+	err = u.svc.SignUp(ctx.Request.Context(), domain.User{ // 不要直接传ctx
 		Email:    req.Email,
 		Password: req.Password,
 	})
-	if err == service.ErrUserDuplicateEmail {
-		ctx.String(http.StatusOK, "邮箱冲突")
+	if errors.Is(err, service.ErrUserDuplicateEmail) {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "邮箱冲突",
+		})
 		return
 	}
 	if err != nil {
-		ctx.String(http.StatusOK, "系统异常") // 不要直接返回具体的错误信息
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
 		return
 	}
 
@@ -129,7 +141,49 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 
 // Login 登录
 func (u *UserHandler) Login(ctx *gin.Context) {
-
+	type LoginReq struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	var req LoginReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	_, err := u.svc.Login(ctx.Request.Context(), domain.User{
+		Email:    req.Email,
+		Password: req.Password,
+	})
+	if errors.Is(err, service.ErrInvalidEmailOrPassword) {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "邮箱或密码不对",
+		})
+		return
+	}
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	// 这里要保存登录态
+	//// 设置session
+	//sess := sessions.Default(ctx)
+	//// 设置session的值（不是session_id)
+	//sess.Set("userId", user.Id)
+	//// 控制Cookie
+	//sess.Options(sessions.Options{
+	//	//Secure: true,
+	//	MaxAge: 10 * 60, // 设置过期时间 30 * 60s（演示效果10*60s)
+	//})
+	//// 保存session
+	//sess.Save()
+	ctx.JSON(http.StatusOK, Result{
+		Code: 0,
+		Msg:  "登录成功",
+	})
+	return
 }
 
 // Edit 编辑个人信息
