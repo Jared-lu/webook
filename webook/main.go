@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -11,6 +13,7 @@ import (
 	"webook/webook/internal/repository/dao"
 	"webook/webook/internal/service"
 	"webook/webook/internal/web"
+	"webook/webook/internal/web/middleware"
 )
 
 func main() {
@@ -38,7 +41,17 @@ func initDB() *gorm.DB {
 
 func initWebServer() *gin.Engine {
 	server := gin.Default()
-	server.Use(cors.New(cors.Config{
+	server.Use(cordHdl())
+	server.Use(session())
+	server.Use(middleware.NewLoginMiddleWareBuilder().
+		IgnorePaths("users/signup").
+		IgnorePaths("users/login").Build())
+	return server
+}
+
+// cordHdl 跨域请求
+func cordHdl() gin.HandlerFunc {
+	return cors.New(cors.Config{
 		// 跨域允许接受的来源
 		AllowOrigins: []string{"http://localhost:3000"},
 		// 跨域允许接受的方法
@@ -59,6 +72,16 @@ func initWebServer() *gin.Engine {
 		},
 		// Preflight请求过期时间
 		MaxAge: 12 * time.Hour,
-	}))
-	return server
+	})
+}
+
+func session() gin.HandlerFunc {
+	// 设置Session
+	// 指定Session的数据存储的地方为cookie
+	//store := cookie.NewStore([]byte("secret"))
+	//server.Use(sessions.Sessions("MySession", store)) // 这个MySession肯定是放在Cookie中，它带有sess_id，不管Session存储在哪里
+
+	store := memstore.NewStore([]byte("HiIilLa4O8Xy3Pm8C5mh5HymYaYt9eTj"),
+		[]byte("bNzvaKyNGy76lGs3BSaoY3fn9ketFdDf"))
+	return sessions.Sessions("mysession", store)
 }

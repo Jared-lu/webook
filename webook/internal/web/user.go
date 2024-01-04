@@ -3,6 +3,7 @@ package web
 import (
 	"errors"
 	regexp "github.com/dlclark/regexp2"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"webook/webook/internal/domain"
@@ -149,7 +150,7 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 	if err := ctx.Bind(&req); err != nil {
 		return
 	}
-	_, err := u.svc.Login(ctx.Request.Context(), domain.User{
+	user, err := u.svc.Login(ctx.Request.Context(), domain.User{
 		Email:    req.Email,
 		Password: req.Password,
 	})
@@ -168,22 +169,42 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 		return
 	}
 	// 这里要保存登录态
-	//// 设置session
-	//sess := sessions.Default(ctx)
-	//// 设置session的值（不是session_id)
-	//sess.Set("userId", user.Id)
-	//// 控制Cookie
-	//sess.Options(sessions.Options{
-	//	//Secure: true,
-	//	MaxAge: 10 * 60, // 设置过期时间 30 * 60s（演示效果10*60s)
-	//})
-	//// 保存session
-	//sess.Save()
+	// 拿到session
+	sess := sessions.Default(ctx)
+	// 设置session的值
+	// 这个不是sess_id，是我们要存在Session里的数据
+	// sess_id肯定是放在Cookie里
+	// 那谁来生成这个sess_id？
+	sess.Set("userId", user.Id)
+	// 控制Cookie
+	sess.Options(sessions.Options{
+		//Secure: true,
+		MaxAge: 10 * 60, // 设置过期时间 30 * 60s（演示效果10*60s)
+	})
+	// 保存session
+	sess.Save()
 	ctx.JSON(http.StatusOK, Result{
 		Code: 0,
 		Msg:  "登录成功",
 	})
 	return
+}
+
+// Logout 退出登录
+func (u *UserHandler) Logout(ctx *gin.Context) {
+	sess := sessions.Default(ctx)
+	// 设置session的值（不是session_id)
+	// 控制Cookie
+	sess.Options(sessions.Options{
+		// 让Cookie过期
+		MaxAge: -1,
+	})
+	// 保存session
+	sess.Save()
+	ctx.JSON(http.StatusOK, Result{
+		Code: 0,
+		Msg:  "退出登录成功",
+	})
 }
 
 // Edit 编辑个人信息
