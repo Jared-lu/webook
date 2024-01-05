@@ -2,9 +2,11 @@ package web
 
 import (
 	"errors"
+	"fmt"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"webook/webook/internal/domain"
 	"webook/webook/internal/service"
@@ -48,9 +50,11 @@ func (u *UserHandler) RegisterRouter(server *gin.Engine) {
 	//ug.POST("/logout", u.LogoutJWT)
 
 	// 不使用分组功能
-	server.POST("/users/login", u.Login)
+	// server.POST("/users/login", u.Login)
+	server.POST("/users/login", u.LoginJWT)
 	server.POST("/users/edit", u.Edit)
 	server.GET("/users/profile", u.Profile)
+
 	server.GET("/hello", func(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "你好")
 	})
@@ -140,6 +144,56 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 	}) // 写回响应
 }
 
+// LoginJWT 登录
+func (u *UserHandler) LoginJWT(ctx *gin.Context) {
+	type LoginReq struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	var req LoginReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	user, err := u.svc.Login(ctx.Request.Context(), domain.User{
+		Email:    req.Email,
+		Password: req.Password,
+	})
+	if errors.Is(err, service.ErrInvalidEmailOrPassword) {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "邮箱或密码不对",
+		})
+		return
+	}
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	// 这里要用JWT保存登录态
+	// 生成JWT token
+	token := jwt.New(jwt.SigningMethodHS512)
+	tokenStr, err := token.SignedString([]byte("HiIilLa4O8Xy3Pm8C5mh5HymYaYt9eTj"))
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	// 将jwt token返回给前端，通过首部的方式
+	ctx.Header("x-jwt-token", tokenStr)
+	fmt.Println(user)
+
+	ctx.JSON(http.StatusOK, Result{
+		Code: 0,
+		Msg:  "登录成功",
+	})
+	return
+}
+
 // Login 登录
 func (u *UserHandler) Login(ctx *gin.Context) {
 	type LoginReq struct {
@@ -175,7 +229,7 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 	// 这个不是sess_id，是我们要存在Session里的数据
 	// sess_id肯定是放在Cookie里
 	// 那谁来生成这个sess_id？
-	sess.Set("userId", user.Id)
+	sess.Set("userId", user.Id) // 使用user id作为身份识别码
 	// 控制Cookie
 	sess.Options(sessions.Options{
 		//Secure: true,
@@ -214,5 +268,8 @@ func (u *UserHandler) Edit(ctx *gin.Context) {
 
 // Profile 查看个人信息
 func (u *UserHandler) Profile(ctx *gin.Context) {
-
+	ctx.JSON(http.StatusOK, Result{
+		Code: 0,
+		Msg:  "这是你的profile",
+	})
 }

@@ -41,11 +41,11 @@ func initDB() *gorm.DB {
 
 func initWebServer() *gin.Engine {
 	server := gin.Default()
-	server.Use(cordHdl())
-	server.Use(session())
-	server.Use(middleware.NewLoginMiddleWareBuilder().
-		IgnorePaths("users/signup").
-		IgnorePaths("users/login").Build())
+	server.Use(cordHdl(),
+		session(),
+		middleware.NewLoginJWTMiddleWareBuilder().
+			IgnorePaths("/users/signup").
+			IgnorePaths("/users/login").Build())
 	return server
 }
 
@@ -58,7 +58,7 @@ func cordHdl() gin.HandlerFunc {
 		AllowMethods: []string{"PUT", "PATCH", "POST", "GET"},
 		// 跨域允许接受的首部
 		AllowHeaders: []string{"Content-Type", "Authorization"},
-		// 允许前端拿到返回的Header，JWT会用到
+		// 允许前端拿到服务器返回的Header，JWT会用到
 		ExposeHeaders: []string{"x-jwt-token", "x-refresh-token"},
 		// 是否允许带 cookie 之类的东西
 		AllowCredentials: true,
