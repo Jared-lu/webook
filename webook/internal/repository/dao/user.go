@@ -22,6 +22,13 @@ func NewUserDAO(db *gorm.DB) *UserDAO {
 	return &UserDAO{db: db}
 }
 
+func (dao *UserDAO) FindById(ctx context.Context, id int64) (User, error) {
+	var u User
+	// 返回查找对象，这里的对象是数据库模型
+	err := dao.db.WithContext(ctx).Where("`Id` = ?", id).First(&u).Error
+	return u, err
+}
+
 func (dao *UserDAO) FindByEmail(ctx context.Context, email string) (User, error) {
 	var u User
 	err := dao.db.WithContext(ctx).Where("email = ?", email).First(&u).Error

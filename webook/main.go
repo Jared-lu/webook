@@ -42,7 +42,7 @@ func initDB() *gorm.DB {
 func initWebServer() *gin.Engine {
 	server := gin.Default()
 	server.Use(cordHdl(),
-		session(),
+		//session(),
 		middleware.NewLoginJWTMiddleWareBuilder().
 			IgnorePaths("/users/signup").
 			IgnorePaths("/users/login").Build())

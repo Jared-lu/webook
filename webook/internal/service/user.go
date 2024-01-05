@@ -68,6 +68,12 @@ func (svc *userService) FindOrCreate(ctx context.Context, phone string) (domain.
 }
 
 func (svc *userService) Profile(ctx context.Context, u domain.User) (domain.User, error) {
-	//TODO implement me
-	panic("implement me")
+	return domain.User{
+		Id: u.Id,
+		UserInfo: domain.UserInfo{
+			NickName:    "nickname",
+			Birthday:    "1999-10-1",
+			Description: "666",
+		},
+	}, nil
 }

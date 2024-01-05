@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
+	"time"
 	"webook/webook/internal/domain"
 	"webook/webook/internal/service"
 )
@@ -51,13 +52,12 @@ func (u *UserHandler) RegisterRouter(server *gin.Engine) {
 
 	// 不使用分组功能
 	// server.POST("/users/login", u.Login)
-	server.POST("/users/login", u.LoginJWT)
-	server.POST("/users/edit", u.Edit)
-	server.GET("/users/profile", u.Profile)
+	server.POST("/users/login", u.LoginJWTV1)
+	//server.POST("/users/edit", u.Edit)
+	server.POST("/users/edit", u.EditJWT)
+	//server.GET("/users/profile", u.Profile)
+	server.GET("/users/profile", u.ProfileJWT)
 
-	server.GET("/hello", func(ctx *gin.Context) {
-		ctx.String(http.StatusOK, "你好")
-	})
 }
 
 // SignUp 注册
@@ -144,7 +144,71 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 	}) // 写回响应
 }
 
-// LoginJWT 登录
+// JWTUserClaims JWT用户数据
+type JWTUserClaims struct {
+	jwt.RegisteredClaims // 实现Claims接口
+	// 放入到token里的数据
+	Uid int64
+}
+
+// LoginJWTV1 使用带个人数据的JWT登录
+func (u *UserHandler) LoginJWTV1(ctx *gin.Context) {
+	type LoginReq struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	var req LoginReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	user, err := u.svc.Login(ctx.Request.Context(), domain.User{
+		Email:    req.Email,
+		Password: req.Password,
+	})
+	if errors.Is(err, service.ErrInvalidEmailOrPassword) {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "邮箱或密码不对",
+		})
+		return
+	}
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	// 这里要用JWT保存登录态
+	// 生成JWT token
+	// JWT 带上个人数据作为一个身份识别
+	claims := JWTUserClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			// 设置jwt token的过期时间
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
+		},
+		Uid: user.Id,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
+	tokenStr, err := token.SignedString([]byte("HiIilLa4O8Xy3Pm8C5mh5HymYaYt9eTj"))
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	// 将jwt token返回给前端，通过首部的方式
+	ctx.Header("x-jwt-token", tokenStr)
+
+	ctx.JSON(http.StatusOK, Result{
+		Code: 0,
+		Msg:  "登录成功",
+	})
+	return
+}
+
+// LoginJWT 使用JWT登录
 func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 	type LoginReq struct {
 		Email    string `json:"email"`
@@ -261,15 +325,161 @@ func (u *UserHandler) Logout(ctx *gin.Context) {
 	})
 }
 
-// Edit 编辑个人信息
-func (u *UserHandler) Edit(ctx *gin.Context) {
+func (u *UserHandler) EditJWT(ctx *gin.Context) {
+	type EditReq struct {
+		NickName    string `json:"name"`
+		Birthday    string `json:"birthday"`
+		Description string `json:"description"`
+	}
+	var req EditReq
+	err := ctx.Bind(&req)
+	if err != nil {
+		return
+	}
 
-}
+	uid, _ := ctx.Get("userId")
+	userId, ok := uid.(int64)
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
 
-// Profile 查看个人信息
-func (u *UserHandler) Profile(ctx *gin.Context) {
+	err = u.svc.Edit(ctx, domain.User{
+		Id: userId,
+		UserInfo: domain.UserInfo{
+			NickName:    req.NickName,
+			Birthday:    req.Birthday,
+			Description: req.Description,
+		},
+	})
+	if errors.Is(err, service.ErrInvalidEmailOrPassword) {
+		ctx.JSON(http.StatusOK, Result{
+			// 可能是有人手动把用户的记录从数据库中删除了
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
 	ctx.JSON(http.StatusOK, Result{
 		Code: 0,
-		Msg:  "这是你的profile",
+		Msg:  "编辑成功",
+	})
+}
+
+// Edit 编辑个人信息
+func (u *UserHandler) Edit(ctx *gin.Context) {
+	type EditReq struct {
+		NickName    string `json:"name"`
+		Birthday    string `json:"birthday"`
+		Description string `json:"description"`
+	}
+	var req EditReq
+	err := ctx.Bind(&req)
+	if err != nil {
+		return
+	}
+	sess := sessions.Default(ctx)
+	id := sess.Get("userId")
+
+	err = u.svc.Edit(ctx, domain.User{
+		Id: id.(int64),
+		UserInfo: domain.UserInfo{
+			NickName:    req.NickName,
+			Birthday:    req.Birthday,
+			Description: req.Description,
+		},
+	})
+	if errors.Is(err, service.ErrInvalidEmailOrPassword) {
+		ctx.JSON(http.StatusOK, Result{
+			// 可能是有人手动把用户的记录从数据库中删除了
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Code: 0,
+		Msg:  "编辑成功",
+	})
+}
+
+// ProfileJWT 使用 JWT 机制
+func (u *UserHandler) ProfileJWT(ctx *gin.Context) {
+	uid, _ := ctx.Get("userId")
+	userId, ok := uid.(int64)
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	user, err := u.svc.Profile(ctx, domain.User{Id: userId})
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	type ResProfile struct {
+		NickName    string `json:"nickName"`
+		Birthday    string `json:"birthday"`
+		Description string `json:"description"`
+	}
+	res := ResProfile{
+		NickName:    user.NickName,
+		Birthday:    user.Birthday,
+		Description: user.Description,
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Code: 0,
+		Data: res,
+	})
+}
+
+// Profile 查看个人信息，使用Session机制
+func (u *UserHandler) Profile(ctx *gin.Context) {
+	sess := sessions.Default(ctx)
+	uid := sess.Get("userId")
+	userId, _ := uid.(int64) // 类型断言，interface{}类型转换语法（明确知道是什么类型的情况下）
+	user, err := u.svc.Profile(ctx, domain.User{Id: userId})
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	type ResProfile struct {
+		NickName    string `json:"nickName"`
+		Birthday    string `json:"birthday"`
+		Description string `json:"description"`
+	}
+	res := ResProfile{
+		NickName:    user.NickName,
+		Birthday:    user.Birthday,
+		Description: user.Description,
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Code: 0,
+		Data: res,
 	})
 }

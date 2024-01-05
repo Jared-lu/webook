@@ -3,10 +3,14 @@ package middleware
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"log"
 	"net/http"
 	"strings"
+	"time"
+	"webook/webook/internal/web"
 )
 
+// LoginJWTMiddleWareBuilder 登录校验，使用JWT机制
 type LoginJWTMiddleWareBuilder struct {
 	// 不进行登录校验的路径
 	paths []string
@@ -44,7 +48,8 @@ func (l *LoginJWTMiddleWareBuilder) Build() gin.HandlerFunc {
 			return
 		}
 		tokenStr := sets[1]
-		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		claims := &web.JWTUserClaims{} // 要用指针，因为要作为参数，让被掉函数修改再返回来
+		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 			return []byte("HiIilLa4O8Xy3Pm8C5mh5HymYaYt9eTj"), nil
 		})
 		if err != nil {
@@ -52,10 +57,24 @@ func (l *LoginJWTMiddleWareBuilder) Build() gin.HandlerFunc {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
-		if !token.Valid {
+		if !token.Valid || claims.Uid == 0 { // Uid是数据库自增主键，我们用了默认从1开始，不可能为0
 			// 没登录
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
+		// 方便业务要拿到这个数据
+		ctx.Set("userId", claims.Uid)
+
+		//刷新jwt token
+		// 每一分钟刷一次
+		if claims.ExpiresAt.Sub(time.Now()) > time.Minute*29 {
+			return
+		}
+		claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute * 30))
+		tokenStr, err = token.SignedString([]byte("HiIilLa4O8Xy3Pm8C5mh5HymYaYt9eTj"))
+		if err != nil {
+			log.Println("jwt 续约失败")
+		}
+		ctx.Header("x-jwt-token", tokenStr)
 	}
 }

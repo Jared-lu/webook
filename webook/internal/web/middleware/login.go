@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// LoginMiddleWareBuilder 登录校验，使用Session机制
 type LoginMiddleWareBuilder struct {
 	// 不进行登录校验的路径
 	paths []string
@@ -43,11 +44,12 @@ func (l *LoginMiddleWareBuilder) Build() gin.HandlerFunc {
 		//}
 		// 获取session的值
 		id := sess.Get("userId")
-		if id == nil {
+		if _, ok := id.(int64); id == nil || !ok { // id为nil时，类型断言肯定不成功
 			// 没有登录
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
+
 		// 下面要刷新Session id
 		// 先拿到上次的更新时间
 		updateTime := sess.Get("update_time")
