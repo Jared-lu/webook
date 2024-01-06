@@ -148,7 +148,8 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 type JWTUserClaims struct {
 	jwt.RegisteredClaims // 实现Claims接口
 	// 放入到token里的数据
-	Uid int64
+	Uid       int64
+	UserAgent string
 }
 
 // LoginJWTV1 使用带个人数据的JWT登录
@@ -187,7 +188,8 @@ func (u *UserHandler) LoginJWTV1(ctx *gin.Context) {
 			// 设置jwt token的过期时间
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
 		},
-		Uid: user.Id,
+		Uid:       user.Id,
+		UserAgent: ctx.Request.UserAgent(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 	tokenStr, err := token.SignedString([]byte("HiIilLa4O8Xy3Pm8C5mh5HymYaYt9eTj"))

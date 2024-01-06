@@ -28,7 +28,7 @@ func (l *LoginJWTMiddleWareBuilder) IgnorePaths(path string) *LoginJWTMiddleWare
 // Build 也可以叫CheckLogin
 func (l *LoginJWTMiddleWareBuilder) Build() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		// 实现效果较差，
+		// 实现效果较差，可考虑改造成map结构存储
 		for _, path := range l.paths {
 			if ctx.Request.URL.Path == path {
 				return
@@ -59,6 +59,11 @@ func (l *LoginJWTMiddleWareBuilder) Build() gin.HandlerFunc {
 		}
 		if !token.Valid || claims.Uid == 0 { // Uid是数据库自增主键，我们用了默认从1开始，不可能为0
 			// 没登录
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+		// 登录校验
+		if claims.UserAgent != ctx.Request.UserAgent() {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}

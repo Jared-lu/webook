@@ -5,6 +5,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"webook/webook/internal/service"
 	"webook/webook/internal/web"
 	"webook/webook/internal/web/middleware"
+	"webook/webook/pkg/ginx/middlewares/ratelimit"
 )
 
 func main() {
@@ -40,12 +42,18 @@ func initDB() *gorm.DB {
 }
 
 func initWebServer() *gin.Engine {
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
 	server := gin.Default()
 	server.Use(cordHdl(),
 		//session(),
 		middleware.NewLoginJWTMiddleWareBuilder().
 			IgnorePaths("/users/signup").
-			IgnorePaths("/users/login").Build())
+			IgnorePaths("/users/login").Build(),
+		// 限流，每秒100个请求
+		ratelimit.NewBuilder(redisClient, time.Second, 100).Build())
+
 	return server
 }
 
