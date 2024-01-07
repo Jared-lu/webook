@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 	"webook/webook/internal/repository"
+	"webook/webook/internal/repository/cache"
 	"webook/webook/internal/repository/dao"
 	"webook/webook/internal/service"
 	"webook/webook/internal/web"
@@ -19,14 +20,21 @@ import (
 )
 
 func main() {
-	server := initWebServer()
 	db := initDB()
-	dao := dao.NewUserDAO(db)
-	repo := repository.NewUserRepository(dao)
-	svc := service.NewUserService(repo)
-	u := web.NewUserHandler(svc)
+	redis := initRedis()
+	server := initWebServer()
+	u := initUser(db, redis)
 	u.RegisterRouter(server)
 	server.Run(":8080")
+}
+
+func initUser(db *gorm.DB, redis redis.Cmdable) *web.UserHandler {
+	dao := dao.NewUserDAO(db)
+	userCache := cache.NewRedisUserCache(redis, time.Minute*30)
+	repo := repository.NewUserRepository(dao, userCache)
+	svc := service.NewUserService(repo)
+	u := web.NewUserHandler(svc)
+	return u
 }
 
 func initDB() *gorm.DB {
@@ -41,6 +49,13 @@ func initDB() *gorm.DB {
 	return db
 }
 
+func initRedis() redis.Cmdable {
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+	return redisClient
+}
+
 func initWebServer() *gin.Engine {
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
@@ -52,7 +67,8 @@ func initWebServer() *gin.Engine {
 			IgnorePaths("/users/signup").
 			IgnorePaths("/users/login").Build(),
 		// 限流，每秒100个请求
-		ratelimit.NewBuilder(redisClient, time.Second, 100).Build())
+		ratelimit.NewBuilder(redisClient, time.Second, 100).Build(),
+	)
 
 	return server
 }

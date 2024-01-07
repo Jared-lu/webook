@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"time"
 	"webook/webook/internal/domain"
+	"webook/webook/internal/repository/cache"
 	"webook/webook/internal/repository/dao"
 )
 
@@ -14,11 +15,12 @@ var (
 )
 
 type UserRepository struct {
-	dao *dao.UserDAO
+	dao   *dao.UserDAO
+	cache *cache.RedisUserCache
 }
 
-func NewUserRepository(dao *dao.UserDAO) *UserRepository {
-	return &UserRepository{dao: dao}
+func NewUserRepository(dao *dao.UserDAO, cache *cache.RedisUserCache) *UserRepository {
+	return &UserRepository{dao: dao, cache: cache}
 }
 
 func (r *UserRepository) Create(ctx context.Context, u domain.User) error {
@@ -66,4 +68,21 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (domain.
 		return domain.User{}, err
 	}
 	return r.entityToDomain(user), nil
+}
+
+func (r *UserRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
+	user, err := r.cache.Get(ctx, id)
+	if err == nil {
+		return user, nil
+	}
+	// 这里就是如果Redis没有数据，或者是崩溃了，仍然要从数据库中查
+	u, err := r.dao.FindById(ctx, id)
+	if err != nil {
+		return domain.User{}, err
+	}
+	user = r.entityToDomain(u)
+	go func() {
+		r.cache.Set(ctx, user)
+	}()
+	return user, nil
 }

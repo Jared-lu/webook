@@ -75,7 +75,9 @@ func (l *LoginJWTMiddleWareBuilder) Build() gin.HandlerFunc {
 		if claims.ExpiresAt.Sub(time.Now()) > time.Minute*29 {
 			return
 		}
+		// 过期时间要重新设置一下
 		claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute * 30))
+		// 再重新生成token
 		tokenStr, err = token.SignedString([]byte("HiIilLa4O8Xy3Pm8C5mh5HymYaYt9eTj"))
 		if err != nil {
 			log.Println("jwt 续约失败")

@@ -67,13 +67,10 @@ func (svc *userService) FindOrCreate(ctx context.Context, phone string) (domain.
 	panic("implement me")
 }
 
-func (svc *userService) Profile(ctx context.Context, u domain.User) (domain.User, error) {
-	return domain.User{
-		Id: u.Id,
-		UserInfo: domain.UserInfo{
-			NickName:    "nickname",
-			Birthday:    "1999-10-1",
-			Description: "666",
-		},
-	}, nil
+func (svc *userService) Profile(ctx context.Context, user domain.User) (domain.User, error) {
+	u, err := svc.repo.FindById(ctx, user.Id)
+	if err == repository.ErrUserNotFound {
+		return domain.User{}, ErrInvalidEmailOrPassword
+	}
+	return u, err
 }
