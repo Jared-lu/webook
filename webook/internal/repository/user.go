@@ -86,3 +86,14 @@ func (r *UserRepository) FindById(ctx context.Context, id int64) (domain.User, e
 	}()
 	return user, nil
 }
+
+func (r *UserRepository) Update(ctx context.Context, user domain.User) error {
+	err := r.dao.Update(ctx, r.domainToEntity(user))
+	// 写入缓存
+	go func() {
+		if err != nil {
+			r.cache.Set(ctx, user)
+		}
+	}()
+	return err
+}

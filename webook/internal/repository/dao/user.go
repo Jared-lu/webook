@@ -53,3 +53,11 @@ func (dao *UserDAO) Insert(ctx context.Context, u User) error {
 	}
 	return err
 }
+
+func (dao *UserDAO) Update(ctx context.Context, u User) error {
+	err := dao.db.Model(&u).WithContext(ctx).Where("`Id`=?", u.Id).
+		Updates(User{Email: u.Email, Password: u.Password,
+			NickName: u.NickName, Birthday: u.Birthday, Description: u.Description,
+			Utime: time.Now().UnixMilli()}).Error
+	return err
+}

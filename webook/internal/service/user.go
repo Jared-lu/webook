@@ -57,9 +57,21 @@ func (svc *userService) Login(ctx context.Context, u domain.User) (domain.User, 
 	return user, nil
 }
 
-func (svc *userService) Edit(ctx context.Context, u domain.User) error {
-	//TODO implement me
-	panic("implement me")
+func (svc *userService) Edit(ctx context.Context, user domain.User) error {
+	u, err := svc.repo.FindById(ctx, user.Id)
+	if errors.Is(err, repository.ErrUserNotFound) {
+		return ErrInvalidEmailOrPassword
+	}
+	if err != nil {
+		return err
+	}
+
+	// 更新用户的信息
+	u.NickName = user.NickName
+	u.Birthday = user.Birthday
+	u.Description = user.Description
+	err = svc.repo.Update(ctx, u)
+	return err
 }
 
 func (svc *userService) FindOrCreate(ctx context.Context, phone string) (domain.User, error) {
@@ -69,7 +81,7 @@ func (svc *userService) FindOrCreate(ctx context.Context, phone string) (domain.
 
 func (svc *userService) Profile(ctx context.Context, user domain.User) (domain.User, error) {
 	u, err := svc.repo.FindById(ctx, user.Id)
-	if err == repository.ErrUserNotFound {
+	if errors.Is(err, repository.ErrUserNotFound) {
 		return domain.User{}, ErrInvalidEmailOrPassword
 	}
 	return u, err
