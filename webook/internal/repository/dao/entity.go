@@ -9,7 +9,7 @@ type User struct {
 	Email    sql.NullString `gorm:"unique"`
 	Password string
 
-	// 唯一索引允许为null，但不允许为""
+	// 唯一索引允许有多个为NULL，但不允许有多个空字符串""
 	Phone sql.NullString `gorm:"unique"`
 
 	// 其他用户个人信息

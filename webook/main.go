@@ -6,14 +6,20 @@ import (
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
+	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
+	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
+	tencentSms "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms/v20210111"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"os"
 	"strings"
 	"time"
 	"webook/webook/internal/repository"
 	"webook/webook/internal/repository/cache"
 	"webook/webook/internal/repository/dao"
 	"webook/webook/internal/service"
+	"webook/webook/internal/service/sms"
+	"webook/webook/internal/service/sms/tencent"
 	"webook/webook/internal/web"
 	"webook/webook/internal/web/middleware"
 	"webook/webook/pkg/ginx/middlewares/ratelimit"
@@ -31,10 +37,29 @@ func main() {
 func initUser(db *gorm.DB, redis redis.Cmdable) *web.UserHandler {
 	dao := dao.NewUserDAO(db)
 	userCache := cache.NewRedisUserCache(redis, time.Minute*30)
-	repo := repository.NewUserRepository(dao, userCache)
-	svc := service.NewUserService(repo)
-	u := web.NewUserHandler(svc)
+	codeCache := cache.NewRedisCodeCache(redis)
+	userRepo := repository.NewUserRepository(dao, userCache)
+	codeRepo := repository.NewCacheCodeRepository(codeCache)
+	userSvc := service.NewUserService(userRepo)
+	smsSvc := initTencentSmsService()
+	codeSvc := service.NewSmsCodeService(codeRepo, smsSvc)
+	u := web.NewUserHandler(userSvc, codeSvc)
 	return u
+}
+
+func initTencentSmsService() sms.Service {
+	secretId, ok := os.LookupEnv("SMS_SECRET_ID")
+	if !ok {
+		panic("找不到环境变量 SMS_SECRET_ID")
+	}
+	secretKey, ok := os.LookupEnv("SMS_SECRET_KEY")
+
+	c, err := tencentSms.NewClient(common.NewCredential(secretId, secretKey),
+		"ap-guangzhou", profile.NewClientProfile())
+	if err != nil {
+		panic("找不到环境变量 SMS_SECRET_KEY")
+	}
+	return tencent.NewSMSService(c, "1400853424", "猜猜我是谁")
 }
 
 func initDB() *gorm.DB {
@@ -65,7 +90,9 @@ func initWebServer() *gin.Engine {
 		//session(),
 		middleware.NewLoginJWTMiddleWareBuilder().
 			IgnorePaths("/users/signup").
-			IgnorePaths("/users/login").Build(),
+			IgnorePaths("/users/login").
+			IgnorePaths("users/login_sms/code/send").
+			IgnorePaths("users/login_sms").Build(),
 		// 限流，每秒100个请求
 		ratelimit.NewBuilder(redisClient, time.Second, 100).Build(),
 	)

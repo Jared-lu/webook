@@ -11,17 +11,6 @@ import (
 
 var ErrKeyNotExist = redis.Nil // 缓存里没数据
 
-// Cache 统一缓存API
-//type Cache interface {
-//	Get(ctx context.Context, key string) (any, error)
-//	Set(ctx context.Context, key string, val any, expiration time.Duration)error
-//}
-
-type RedisUserCache struct {
-	client     redis.Cmdable
-	expiration time.Duration
-}
-
 func NewRedisUserCache(client redis.Cmdable, expiration time.Duration) *RedisUserCache {
 	return &RedisUserCache{client: client, expiration: expiration}
 }

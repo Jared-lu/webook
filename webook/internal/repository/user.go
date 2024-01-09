@@ -27,6 +27,14 @@ func (r *UserRepository) Create(ctx context.Context, u domain.User) error {
 	return r.dao.Insert(ctx, r.domainToEntity(u))
 }
 
+func (r *UserRepository) CreateV1(ctx context.Context, u domain.User) (domain.User, error) {
+	user, err := r.dao.InsertV1(ctx, r.domainToEntity(u))
+	if err != nil {
+		return domain.User{}, err
+	}
+	return r.entityToDomain(user), nil
+}
+
 func (r *UserRepository) entityToDomain(user dao.User) domain.User {
 	return domain.User{
 		Id:       user.Id,
@@ -89,11 +97,19 @@ func (r *UserRepository) FindById(ctx context.Context, id int64) (domain.User, e
 
 func (r *UserRepository) Update(ctx context.Context, user domain.User) error {
 	err := r.dao.Update(ctx, r.domainToEntity(user))
-	// 写入缓存
+	// 更新操作：先更新数据库，再写入缓存
 	go func() {
 		if err != nil {
 			r.cache.Set(ctx, user)
 		}
 	}()
 	return err
+}
+
+func (r *UserRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
+	u, err := r.dao.FindByPhone(ctx, phone)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return r.entityToDomain(u), nil
 }

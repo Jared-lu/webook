@@ -13,14 +13,18 @@ import (
 	"webook/webook/internal/service"
 )
 
+// 业务
+const biz = "login"
+
 // UserHandler 用户模块
 type UserHandler struct {
 	svc         service.UserService
+	codeSvc     service.CodeService
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
 }
 
-func NewUserHandler(svc service.UserService) *UserHandler {
+func NewUserHandler(svc service.UserService, codeSvc service.CodeService) *UserHandler {
 	const (
 		// 邮箱格式
 		emailRegexPattern = "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"
@@ -32,6 +36,7 @@ func NewUserHandler(svc service.UserService) *UserHandler {
 	passwordExp := regexp.MustCompile(passwordRegexPattern, regexp.None)
 	return &UserHandler{
 		svc:         svc,
+		codeSvc:     codeSvc,
 		emailExp:    emailExp,
 		passwordExp: passwordExp,
 	}
@@ -57,7 +62,103 @@ func (u *UserHandler) RegisterRouter(server *gin.Engine) {
 	server.POST("/users/edit", u.EditJWT)
 	//server.GET("/users/profile", u.Profile)
 	server.GET("/users/profile", u.ProfileJWT)
+	server.POST("users/login_sms/code/send", u.SendLoginSMSCode)
+	server.POST("users/login_sms", u.LoginSMS)
+}
 
+// SendLoginSMSCode 发送验证码
+func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
+	type Req struct {
+		Phone string `json:"phone"`
+	}
+	var req Req
+	err := ctx.Bind(&req)
+	if err != nil {
+		return
+	}
+	// 校验手机号码是否合法
+	// 这里可以使用一个正则表达式
+	if req.Phone == "" {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "手机号码不对",
+		})
+		return
+	}
+
+	err = u.codeSvc.Send(ctx, biz, req.Phone)
+	switch {
+	case err == nil:
+		ctx.JSON(http.StatusOK, Result{
+			Msg: "发送成功",
+		})
+		return
+	case errors.Is(err, service.ErrCodeSendTooMany):
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "发送太频繁",
+		})
+		return
+	default:
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+}
+
+// LoginSMS 验证码登录
+func (u *UserHandler) LoginSMS(ctx *gin.Context) {
+	type Req struct {
+		Phone string `json:"phone"`
+		Code  string `json:"code"`
+	}
+	var req Req
+	err := ctx.Bind(&req)
+	if err != nil {
+		return
+	}
+
+	// 校验验证码
+	ok, err := u.codeSvc.Verify(ctx, biz, req.Phone, req.Code)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "手机号码不对",
+		})
+		return
+	}
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "验证码不对",
+		})
+		return
+	}
+
+	// 登录或者注册，注册完还要保持登录
+	// 新用户则直接创建，否则没有userId
+	user, err := u.svc.FindOrCreateByPhone(ctx, req.Phone)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	err = u.setJWTToken(ctx, user.Id)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Code: 0,
+		Msg:  "验证码校验通过",
+	})
 }
 
 // SignUp 注册
@@ -181,6 +282,23 @@ func (u *UserHandler) LoginJWTV1(ctx *gin.Context) {
 		return
 	}
 	// 这里要用JWT保存登录态
+
+	if err = u.setJWTToken(ctx, user.Id); err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, Result{
+		Code: 0,
+		Msg:  "登录成功",
+	})
+	return
+}
+
+func (u *UserHandler) setJWTToken(ctx *gin.Context, id int64) error {
 	// 生成JWT token
 	// JWT 带上个人数据作为一个身份识别
 	claims := JWTUserClaims{
@@ -188,26 +306,17 @@ func (u *UserHandler) LoginJWTV1(ctx *gin.Context) {
 			// 设置jwt token的过期时间
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
 		},
-		Uid:       user.Id,
+		Uid:       id,
 		UserAgent: ctx.Request.UserAgent(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 	tokenStr, err := token.SignedString([]byte("HiIilLa4O8Xy3Pm8C5mh5HymYaYt9eTj"))
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result{
-			Code: 5,
-			Msg:  "系统错误",
-		})
-		return
+		return err
 	}
 	// 将jwt token返回给前端，通过首部的方式
 	ctx.Header("x-jwt-token", tokenStr)
-
-	ctx.JSON(http.StatusOK, Result{
-		Code: 0,
-		Msg:  "登录成功",
-	})
-	return
+	return nil
 }
 
 // LoginJWT 使用JWT登录
@@ -349,7 +458,7 @@ func (u *UserHandler) EditJWT(ctx *gin.Context) {
 		return
 	}
 
-	err = u.svc.Edit(ctx, domain.User{
+	err = u.svc.Edit(ctx.Request.Context(), domain.User{
 		Id: userId,
 		UserInfo: domain.UserInfo{
 			NickName:    req.NickName,
@@ -393,7 +502,7 @@ func (u *UserHandler) Edit(ctx *gin.Context) {
 	sess := sessions.Default(ctx)
 	id := sess.Get("userId")
 
-	err = u.svc.Edit(ctx, domain.User{
+	err = u.svc.Edit(ctx.Request.Context(), domain.User{
 		Id: id.(int64),
 		UserInfo: domain.UserInfo{
 			NickName:    req.NickName,
@@ -433,7 +542,7 @@ func (u *UserHandler) ProfileJWT(ctx *gin.Context) {
 		})
 		return
 	}
-	user, err := u.svc.Profile(ctx, domain.User{Id: userId})
+	user, err := u.svc.Profile(ctx.Request.Context(), domain.User{Id: userId})
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
@@ -462,7 +571,7 @@ func (u *UserHandler) Profile(ctx *gin.Context) {
 	sess := sessions.Default(ctx)
 	uid := sess.Get("userId")
 	userId, _ := uid.(int64) // 类型断言，interface{}类型转换语法（明确知道是什么类型的情况下）
-	user, err := u.svc.Profile(ctx, domain.User{Id: userId})
+	user, err := u.svc.Profile(ctx.Request.Context(), domain.User{Id: userId})
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
