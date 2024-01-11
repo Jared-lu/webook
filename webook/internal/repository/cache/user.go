@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"time"
@@ -11,8 +12,13 @@ import (
 
 var ErrKeyNotExist = redis.Nil // 缓存里没数据
 
-func NewRedisUserCache(client redis.Cmdable, expiration time.Duration) *RedisUserCache {
-	return &RedisUserCache{client: client, expiration: expiration}
+type RedisUserCache struct {
+	client     redis.Cmdable
+	expiration time.Duration
+}
+
+func NewRedisUserCache(client redis.Cmdable) *RedisUserCache {
+	return &RedisUserCache{client: client, expiration: time.Minute * 15}
 }
 
 // Get 拿到User缓存
@@ -23,7 +29,7 @@ func (cache *RedisUserCache) Get(ctx context.Context, id int64) (domain.User, er
 	val, err := cache.client.Get(ctx, key).Bytes()
 	// 缓存中有没有数据，只有操作缓存的设计者才知道
 	// 因为要通过返回值区分没有数据还是数据库出错
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		// 这里是为了以后要改 ErrKeyNotExist 的定义时，不影响使用者
 		return domain.User{}, ErrKeyNotExist
 	}
