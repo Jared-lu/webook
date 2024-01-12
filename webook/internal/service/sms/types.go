@@ -2,6 +2,7 @@ package sms
 
 import "context"
 
+// Service 短信服务
 type Service interface {
 	// Send
 	// tplId 模板Id

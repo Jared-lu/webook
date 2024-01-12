@@ -13,19 +13,11 @@ var (
 	ErrInvalidEmailOrPassword = errors.New("邮箱或密码不对") // 不区分用户不存在或密码错误
 )
 
-type UserService interface {
-	SignUp(ctx context.Context, u domain.User) error
-	Login(ctx context.Context, user domain.User) (domain.User, error)
-	Edit(ctx context.Context, user domain.User) error
-	FindOrCreateByPhone(ctx context.Context, phone string) (domain.User, error)
-	Profile(ctx context.Context, user domain.User) (domain.User, error)
-}
-
 type userService struct {
-	repo *repository.UserRepository
+	repo repository.UserRepository
 }
 
-func NewUserService(repo *repository.UserRepository) UserService {
+func NewUserService(repo repository.UserRepository) UserService {
 	return &userService{repo: repo}
 }
 

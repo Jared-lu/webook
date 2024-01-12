@@ -2,7 +2,14 @@ package cache
 
 import (
 	"context"
+	"webook/webook/internal/domain"
 )
+
+// UserCache 用户缓存
+type UserCache interface {
+	Get(ctx context.Context, id int64) (domain.User, error)
+	Set(ctx context.Context, u domain.User) error
+}
 
 // CodeCache 验证码缓存
 type CodeCache interface {

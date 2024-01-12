@@ -16,6 +16,8 @@ import (
 // 业务
 const biz = "login"
 
+var _ handler = (*UserHandler)(nil)
+
 // UserHandler 用户模块
 type UserHandler struct {
 	svc         service.UserService
