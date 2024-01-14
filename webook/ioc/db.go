@@ -3,7 +3,7 @@ package ioc
 import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"webook/webook/internal/domain"
+	"webook/webook/internal/repository/dao"
 )
 
 func InitDB() *gorm.DB {
@@ -20,5 +20,5 @@ func InitDB() *gorm.DB {
 
 func initTable(db *gorm.DB) error {
 	// gorm自动建表
-	return db.AutoMigrate(&domain.User{})
+	return db.AutoMigrate(&dao.User{})
 }
