@@ -5,6 +5,8 @@ import (
 	"webook/webook/internal/domain"
 )
 
+//go:generate mockgen -source=./types.go -package=repomocks -destination=./mocks/repository.mock.go
+
 type UserRepository interface {
 	Create(ctx context.Context, u domain.User) error
 	CreateV1(ctx context.Context, u domain.User) (domain.User, error)

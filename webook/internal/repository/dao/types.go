@@ -2,6 +2,8 @@ package dao
 
 import "context"
 
+//go:generate mockgen -source=./types.go -package=daomocks -destination=./mocks/dao.mock.go
+
 type UserDAO interface {
 	FindById(ctx context.Context, id int64) (User, error)
 	FindByEmail(ctx context.Context, email string) (User, error)

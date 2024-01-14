@@ -5,6 +5,8 @@ import (
 	"webook/webook/internal/domain"
 )
 
+//go:generate mockgen -source=./types.go -package=svcmocks -destination=./mocks/service.mock.go
+
 type UserService interface {
 	SignUp(ctx context.Context, u domain.User) error
 	Login(ctx context.Context, user domain.User) (domain.User, error)
