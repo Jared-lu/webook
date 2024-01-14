@@ -450,6 +450,8 @@ func (u *UserHandler) EditJWT(ctx *gin.Context) {
 		return
 	}
 
+	// 这里缺了一些校验，如日期
+
 	uid, _ := ctx.Get("userId")
 	userId, ok := uid.(int64)
 	if !ok {
