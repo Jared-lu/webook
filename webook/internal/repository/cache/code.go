@@ -49,7 +49,6 @@ func (c *RedisCodeCache) Set(ctx context.Context, biz, phone, code string) error
 	default:
 		// 系统错误
 		return errors.New("系统错误")
-
 	}
 }
 

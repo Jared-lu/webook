@@ -14,6 +14,7 @@ type User struct {
 
 type UserInfo struct {
 	NickName string
+	// 年-月-日，如1999-01-11
 	Birthday string
 	// 个人简介
 	Description string

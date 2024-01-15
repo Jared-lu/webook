@@ -16,6 +16,8 @@ import (
 // 业务
 const biz = "login"
 
+var _ handler = (*UserHandler)(nil)
+
 // UserHandler 用户模块
 type UserHandler struct {
 	svc         service.UserService
@@ -447,6 +449,8 @@ func (u *UserHandler) EditJWT(ctx *gin.Context) {
 	if err != nil {
 		return
 	}
+
+	// 这里缺了一些校验，如日期
 
 	uid, _ := ctx.Get("userId")
 	userId, ok := uid.(int64)

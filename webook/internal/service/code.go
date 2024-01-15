@@ -16,12 +16,6 @@ var (
 	ErrCodeVerifyTooMany = repository.ErrCodeVerifyTooMany
 )
 
-// CodeService 验证码服务
-type CodeService interface {
-	Send(ctx context.Context, biz string, phone string) error
-	Verify(ctx context.Context, biz string, phone string, inputCode string) (bool, error)
-}
-
 // SmsCodeService 短信验证码服务
 type SmsCodeService struct {
 	repo repository.CodeRepository
