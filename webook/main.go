@@ -2,5 +2,8 @@ package main
 
 func main() {
 	server := initApp()
-	server.Run(":8080")
+	err := server.Run(":8080")
+	if err != nil {
+		return
+	}
 }
