@@ -6,11 +6,12 @@ import (
 	tencentSms "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms/v20210111"
 	"os"
 	"webook/webook/internal/service/sms"
+	"webook/webook/internal/service/sms/memory"
 	"webook/webook/internal/service/sms/tencent"
 )
 
 func InitSMSService() sms.Service {
-	return initTencentSMSService()
+	return initMemorySMSService()
 }
 
 func initTencentSMSService() sms.Service {
@@ -26,4 +27,8 @@ func initTencentSMSService() sms.Service {
 		panic("找不到环境变量 SMS_SECRET_KEY")
 	}
 	return tencent.NewSMSService(c, "1400853424", "猜猜我是谁")
+}
+
+func initMemorySMSService() sms.Service {
+	return memory.NewSmsService()
 }
