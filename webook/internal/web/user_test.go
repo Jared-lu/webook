@@ -366,17 +366,38 @@ func TestUserHandler_LoginSMS(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			//ctrl := gomock.NewController(t)
+			//ctrl.Finish()
+			//server := gin.Default()
+			//u := NewUserHandler(tc.mock(ctrl))
+			//u.RegisterRouter(server)
+			//req, err := http.NewRequest(http.MethodPost, "/users/login_sms", bytes.NewBuffer([]byte(tc.reqBody)))
+			//require.NoError(t, err)
+			//req.Header.Set("Content-Type", "application/json")
+			//resp := httptest.NewRecorder()
+			//server.ServeHTTP(resp, req)
+			//assert.Equal(t, tc.wantCode, resp.Code)
+			//if resp.Code != 200 {
+			//	return
+			//}
+			//var res Result
+			//err = json.Unmarshal(resp.Body.Bytes(), &res)
+			//require.NoError(t, err)
+			//assert.Equal(t, tc.wantBody, res)
+
 			ctrl := gomock.NewController(t)
-			ctrl.Finish()
+			defer ctrl.Finish()
 			server := gin.Default()
 			u := NewUserHandler(tc.mock(ctrl))
 			u.RegisterRouter(server)
 			req, err := http.NewRequest(http.MethodPost, "/users/login_sms", bytes.NewBuffer([]byte(tc.reqBody)))
 			require.NoError(t, err)
+			req.Header.Set("Content-Type", "application/json")
 			resp := httptest.NewRecorder()
 			server.ServeHTTP(resp, req)
 			assert.Equal(t, tc.wantCode, resp.Code)
-			if resp.Code != 200 {
+			if resp.Code != http.StatusOK {
+				// 400响应码没有必要笔记下面了
 				return
 			}
 			var res Result
