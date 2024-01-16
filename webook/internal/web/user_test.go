@@ -218,3 +218,171 @@ func TestUserHandler_SignUp(t *testing.T) {
 		})
 	}
 }
+
+func TestUserHandler_LoginJWTV1(t *testing.T) {
+	testCases := []struct {
+		name     string
+		mock     func(ctrl *gomock.Controller) service.UserService
+		reqBody  string
+		wantCode int
+		wantBody Result
+	}{
+		{
+			name: "登录成功",
+			reqBody: `
+{
+	"email":"1234@qq.com",
+	"password":"hello@123"
+}
+`,
+			mock: func(ctrl *gomock.Controller) service.UserService {
+				svc := svcmocks.NewMockUserService(ctrl)
+				svc.EXPECT().Login(context.Background(), domain.User{
+					Email:    "1234@qq.com",
+					Password: "hello@123",
+				}).Return(domain.User{}, nil)
+				return svc
+			},
+			wantCode: http.StatusOK,
+			wantBody: Result{
+				Code: 0,
+				Msg:  "登录成功",
+			},
+		},
+		{
+			name: "请求有误",
+			reqBody: `
+{
+	"email":"1234@qq.com",
+	"password":"hello@12
+`,
+			mock: func(ctrl *gomock.Controller) service.UserService {
+				svc := svcmocks.NewMockUserService(ctrl)
+				return svc
+			},
+			wantCode: http.StatusBadRequest,
+			wantBody: Result{},
+		},
+		{
+			name: "邮箱或密码不对",
+			reqBody: `
+{
+	"email":"1234@qq.com",
+	"password":"hello@123"
+}
+`,
+			mock: func(ctrl *gomock.Controller) service.UserService {
+				svc := svcmocks.NewMockUserService(ctrl)
+				svc.EXPECT().Login(context.Background(), domain.User{
+					Email:    "1234@qq.com",
+					Password: "hello@123",
+				}).Return(domain.User{}, service.ErrInvalidEmailOrPassword)
+				return svc
+			},
+			wantCode: http.StatusOK,
+			wantBody: Result{
+				Code: 4,
+				Msg:  "邮箱或密码不对",
+			},
+		},
+		{
+			name: "系统错误",
+			reqBody: `
+{
+	"email":"1234@qq.com",
+	"password":"hello@123"
+}
+`,
+			mock: func(ctrl *gomock.Controller) service.UserService {
+				svc := svcmocks.NewMockUserService(ctrl)
+				svc.EXPECT().Login(context.Background(), domain.User{
+					Email:    "1234@qq.com",
+					Password: "hello@123",
+				}).Return(domain.User{}, errors.New("系统错误"))
+				return svc
+			},
+			wantCode: http.StatusOK,
+			wantBody: Result{
+				Code: 5,
+				Msg:  "系统错误",
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			server := gin.Default()
+			u := NewUserHandler(tc.mock(ctrl), nil)
+			u.RegisterRouter(server)
+			req, err := http.NewRequest(http.MethodPost, "/users/login", bytes.NewBuffer([]byte(tc.reqBody)))
+			require.NoError(t, err)
+			req.Header.Set("Content-Type", "application/json")
+			resp := httptest.NewRecorder()
+			server.ServeHTTP(resp, req)
+			assert.Equal(t, tc.wantCode, resp.Code)
+			if resp.Code != http.StatusOK {
+				// 400响应码没有必要笔记下面了
+				return
+			}
+			var res Result
+			err = json.Unmarshal(resp.Body.Bytes(), &res)
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantBody, res)
+		})
+	}
+}
+
+func TestUserHandler_LoginSMS(t *testing.T) {
+	testCases := []struct {
+		name     string
+		reqBody  string
+		mock     func(ctrl *gomock.Controller) (service.UserService, service.CodeService)
+		wantCode int
+		wantBody Result
+	}{
+		{
+			name: "登录成功",
+			reqBody: `
+{
+    "phone":"13761234565",
+    "code":"355673"
+}
+`,
+			mock: func(ctrl *gomock.Controller) (service.UserService, service.CodeService) {
+				codeSvc := svcmocks.NewMockCodeService(ctrl)
+				codeSvc.EXPECT().Verify(context.Background(), biz, "13011223344", "012345").
+					Return(true, nil)
+				userSvc := svcmocks.NewMockUserService(ctrl)
+				userSvc.EXPECT().FindOrCreateByPhone(context.Background(), "13011223344").
+					Return(domain.User{}, nil)
+				return userSvc, codeSvc
+			},
+			wantCode: http.StatusOK,
+			wantBody: Result{
+				Code: 0,
+				Msg:  "验证码校验通过"},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			ctrl.Finish()
+			server := gin.Default()
+			u := NewUserHandler(tc.mock(ctrl))
+			u.RegisterRouter(server)
+			req, err := http.NewRequest(http.MethodPost, "/users/login_sms", bytes.NewBuffer([]byte(tc.reqBody)))
+			require.NoError(t, err)
+			resp := httptest.NewRecorder()
+			server.ServeHTTP(resp, req)
+			assert.Equal(t, tc.wantCode, resp.Code)
+			if resp.Code != 200 {
+				return
+			}
+			var res Result
+			err = json.Unmarshal(resp.Body.Bytes(), &res)
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantBody, res)
+		})
+	}
+}

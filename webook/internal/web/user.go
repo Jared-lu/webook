@@ -64,8 +64,8 @@ func (u *UserHandler) RegisterRouter(server *gin.Engine) {
 	server.POST("/users/edit", u.EditJWT)
 	//server.GET("/users/profile", u.Profile)
 	server.GET("/users/profile", u.ProfileJWT)
-	server.POST("users/login_sms/code/send", u.SendLoginSMSCode)
-	server.POST("users/login_sms", u.LoginSMS)
+	server.POST("/users/login_sms/code/send", u.SendLoginSMSCode)
+	server.POST("/users/login_sms", u.LoginSMS)
 }
 
 // SendLoginSMSCode 发送验证码
