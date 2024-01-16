@@ -96,7 +96,7 @@ func Test_userService_Login(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			ctrl.Finish()
+			defer ctrl.Finish()
 			svc := NewUserService(tc.mock(ctrl))
 			user, err := svc.Login(context.Background(), tc.inputUser)
 			assert.Equal(t, tc.wantErr, err)

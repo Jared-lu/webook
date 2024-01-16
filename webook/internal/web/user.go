@@ -88,7 +88,7 @@ func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 		return
 	}
 
-	err = u.codeSvc.Send(ctx, biz, req.Phone)
+	err = u.codeSvc.Send(ctx.Request.Context(), biz, req.Phone)
 	switch {
 	case err == nil:
 		ctx.JSON(http.StatusOK, Result{
@@ -123,7 +123,7 @@ func (u *UserHandler) LoginSMS(ctx *gin.Context) {
 	}
 
 	// 校验验证码
-	ok, err := u.codeSvc.Verify(ctx, biz, req.Phone, req.Code)
+	ok, err := u.codeSvc.Verify(ctx.Request.Context(), biz, req.Phone, req.Code)
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
@@ -141,7 +141,7 @@ func (u *UserHandler) LoginSMS(ctx *gin.Context) {
 
 	// 登录或者注册，注册完还要保持登录
 	// 新用户则直接创建，否则没有userId
-	user, err := u.svc.FindOrCreateByPhone(ctx, req.Phone)
+	user, err := u.svc.FindOrCreateByPhone(ctx.Request.Context(), req.Phone)
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,

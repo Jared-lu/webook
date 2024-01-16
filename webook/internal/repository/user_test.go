@@ -131,7 +131,7 @@ func TestCacheUserRepository_FindById(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
-			ctrl.Finish()
+			defer ctrl.Finish()
 			repo := NewUserRepository(tc.mock(ctrl))
 			user, err := repo.FindById(tc.ctx, tc.inputId)
 			assert.Equal(t, tc.wantErr, err)
