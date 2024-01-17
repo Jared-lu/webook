@@ -503,6 +503,7 @@ func TestUserHandler_LoginSMS(t *testing.T) {
 			u.RegisterRouter(server)
 			// 构造http请求
 			req, err := http.NewRequest(http.MethodPost, "/users/login_sms", bytes.NewBuffer([]byte(tc.reqBody)))
+			req.Header.Set("Content-Type", "application/json")
 			require.NoError(t, err)
 			req.Header.Set("Content-Type", "application/json")
 			// 构造响应
