@@ -8,6 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"time"
 	"webook/webook/internal/domain"
+	"webook/webook/internal/repository/cache"
 )
 
 var ErrKeyNotExist = redis.Nil // 缓存里没数据
@@ -17,7 +18,7 @@ type RedisUserCache struct {
 	expiration time.Duration
 }
 
-func NewRedisUserCache(client redis.Cmdable) UserCache {
+func NewRedisUserCache(client redis.Cmdable) cache.UserCache {
 	return &RedisUserCache{client: client, expiration: time.Minute * 15}
 }
 

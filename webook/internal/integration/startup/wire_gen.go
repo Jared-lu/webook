@@ -9,7 +9,7 @@ package startup
 import (
 	"github.com/gin-gonic/gin"
 	"webook/webook/internal/repository"
-	"webook/webook/internal/repository/cache"
+	"webook/webook/internal/repository/cache/Redis"
 	"webook/webook/internal/repository/dao"
 	"webook/webook/internal/service"
 	"webook/webook/internal/web"

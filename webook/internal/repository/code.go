@@ -3,11 +3,12 @@ package repository
 import (
 	"context"
 	"webook/webook/internal/repository/cache"
+	cache2 "webook/webook/internal/repository/cache/Redis"
 )
 
 var (
-	ErrCodeSendTooMany   = cache.ErrCodeSendTooMany
-	ErrCodeVerifyTooMany = cache.ErrCodeVerifyTooMany
+	ErrCodeSendTooMany   = cache2.ErrCodeSendTooMany
+	ErrCodeVerifyTooMany = cache2.ErrCodeVerifyTooMany
 )
 
 type CacheCodeRepository struct {

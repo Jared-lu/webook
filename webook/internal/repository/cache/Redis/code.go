@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	"webook/webook/internal/repository/cache"
 )
 
 var (
@@ -26,7 +27,7 @@ type RedisCodeCache struct {
 	client redis.Cmdable
 }
 
-func NewRedisCodeCache(client redis.Cmdable) CodeCache {
+func NewRedisCodeCache(client redis.Cmdable) cache.CodeCache {
 	return &RedisCodeCache{
 		client: client,
 	}

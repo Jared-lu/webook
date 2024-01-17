@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 	"webook/webook/internal/domain"
-	"webook/webook/internal/repository/cache"
 	cachemocks "webook/webook/internal/repository/cache/mocks"
 	"webook/webook/internal/repository/dao"
 	daomocks "webook/webook/internal/repository/dao/mocks"
@@ -26,15 +25,15 @@ func TestCacheUserRepository_FindById(t *testing.T) {
 		inputId  int64
 		wantUser domain.User
 		wantErr  error
-		mock     func(ctrl *gomock.Controller) (dao.UserDAO, cache.UserCache)
+		mock     func(ctrl *gomock.Controller) (dao.UserDAO, Redis.UserCache)
 	}{
 		{
 			name:    "未命中缓存，查询数据库成功",
 			ctx:     context.Background(),
 			inputId: 1,
-			mock: func(ctrl *gomock.Controller) (dao.UserDAO, cache.UserCache) {
+			mock: func(ctrl *gomock.Controller) (dao.UserDAO, Redis.UserCache) {
 				c := cachemocks.NewMockUserCache(ctrl)
-				c.EXPECT().Get(context.Background(), int64(1)).Return(domain.User{}, cache.ErrKeyNotExist)
+				c.EXPECT().Get(context.Background(), int64(1)).Return(domain.User{}, Redis.ErrKeyNotExist)
 				d := daomocks.NewMockUserDAO(ctrl)
 				// 要手动转换为int64，否则默认为int
 				d.EXPECT().FindById(context.Background(), int64(1)).Return(dao.User{
@@ -83,7 +82,7 @@ func TestCacheUserRepository_FindById(t *testing.T) {
 			name:    "命中缓存",
 			ctx:     context.Background(),
 			inputId: 1,
-			mock: func(ctrl *gomock.Controller) (dao.UserDAO, cache.UserCache) {
+			mock: func(ctrl *gomock.Controller) (dao.UserDAO, Redis.UserCache) {
 				c := cachemocks.NewMockUserCache(ctrl)
 				c.EXPECT().Get(context.Background(), int64(1)).Return(domain.User{
 					Email:    "123@qq.com",
@@ -115,9 +114,9 @@ func TestCacheUserRepository_FindById(t *testing.T) {
 			name:    "查询数据库出错",
 			ctx:     context.Background(),
 			inputId: 1,
-			mock: func(ctrl *gomock.Controller) (dao.UserDAO, cache.UserCache) {
+			mock: func(ctrl *gomock.Controller) (dao.UserDAO, Redis.UserCache) {
 				c := cachemocks.NewMockUserCache(ctrl)
-				c.EXPECT().Get(context.Background(), int64(1)).Return(domain.User{}, cache.ErrKeyNotExist)
+				c.EXPECT().Get(context.Background(), int64(1)).Return(domain.User{}, Redis.ErrKeyNotExist)
 				d := daomocks.NewMockUserDAO(ctrl)
 				// 要手动转换为int64，否则默认为int
 				d.EXPECT().FindById(context.Background(), int64(1)).

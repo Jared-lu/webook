@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
 	"webook/webook/internal/repository"
-	"webook/webook/internal/repository/cache"
+	cache "webook/webook/internal/repository/cache/Redis"
 	"webook/webook/internal/repository/dao"
 	"webook/webook/internal/service"
 	"webook/webook/internal/web"
