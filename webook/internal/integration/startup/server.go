@@ -10,7 +10,6 @@ import (
 	"time"
 	"webook/webook/internal/web"
 	"webook/webook/internal/web/middleware"
-	"webook/webook/pkg/ginx/middlewares/ratelimit"
 )
 
 func InitGinServer(middlewares []gin.HandlerFunc, userHandler *web.UserHandler) *gin.Engine {
@@ -29,7 +28,7 @@ func InitGinMiddlewares(redisClient redis.Cmdable) []gin.HandlerFunc {
 			IgnorePaths("/users/login").
 			IgnorePaths("/users/login_sms/code/send").
 			IgnorePaths("/users/login_sms").Build(),
-		ratelimit.NewBuilder(redisClient, time.Second, 100).Build(),
+		//ratelimit.NewBuilder(redisClient, time.Second, 100).Build(),
 	}
 }
 
