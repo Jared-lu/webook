@@ -21,8 +21,9 @@ func initApp() *gin.Engine {
 		cache.NewRedisUserCache, cache.NewRedisCodeCache,
 		repository.NewUserRepository, repository.NewCacheCodeRepository,
 		service.NewUserService, service.NewSmsCodeService,
-		web.NewUserHandler,
+		web.NewUserHandler, web.NewOAuth2WechatHandler,
 		ioc.InitGinServer, ioc.InitGinMiddlewares,
+		ioc.InitOAuth2WechatService,
 	)
 	return new(gin.Engine)
 }

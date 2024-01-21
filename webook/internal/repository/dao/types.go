@@ -11,4 +11,5 @@ type UserDAO interface {
 	InsertV1(ctx context.Context, u User) (User, error)
 	Update(ctx context.Context, u User) error
 	FindByPhone(ctx context.Context, phone string) (User, error)
+	FindByWechatOpenId(ctx context.Context, openId string) (User, error)
 }

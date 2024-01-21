@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
-	"time"
 	"webook/webook/internal/domain"
 	"webook/webook/internal/service"
 )
@@ -24,6 +23,7 @@ type UserHandler struct {
 	codeSvc     service.CodeService
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
+	jwtHandler
 }
 
 func NewUserHandler(svc service.UserService, codeSvc service.CodeService) *UserHandler {
@@ -247,14 +247,6 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 	}) // 写回响应
 }
 
-// JWTUserClaims JWT用户数据
-type JWTUserClaims struct {
-	jwt.RegisteredClaims // 实现Claims接口
-	// 放入到token里的数据
-	Uid       int64
-	UserAgent string
-}
-
 // LoginJWTV1 使用带个人数据的JWT登录
 func (u *UserHandler) LoginJWTV1(ctx *gin.Context) {
 	type LoginReq struct {
@@ -298,27 +290,6 @@ func (u *UserHandler) LoginJWTV1(ctx *gin.Context) {
 		Msg:  "登录成功",
 	})
 	return
-}
-
-func (u *UserHandler) setJWTToken(ctx *gin.Context, id int64) error {
-	// 生成JWT token
-	// JWT 带上个人数据作为一个身份识别
-	claims := JWTUserClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			// 设置jwt token的过期时间
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
-		},
-		Uid:       id,
-		UserAgent: ctx.Request.UserAgent(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
-	tokenStr, err := token.SignedString([]byte("HiIilLa4O8Xy3Pm8C5mh5HymYaYt9eTj"))
-	if err != nil {
-		return err
-	}
-	// 将jwt token返回给前端，通过首部的方式
-	ctx.Header("x-jwt-token", tokenStr)
-	return nil
 }
 
 // LoginJWT 使用JWT登录

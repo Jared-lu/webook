@@ -14,6 +14,7 @@ type UserRepository interface {
 	FindById(ctx context.Context, id int64) (domain.User, error)
 	Update(ctx context.Context, user domain.User) error
 	FindByPhone(ctx context.Context, phone string) (domain.User, error)
+	FindByWechatOpenId(ctx context.Context, OpenId string) (domain.User, error)
 }
 
 type CodeRepository interface {

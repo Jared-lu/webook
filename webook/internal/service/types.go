@@ -13,6 +13,7 @@ type UserService interface {
 	Edit(ctx context.Context, user domain.User) error
 	FindOrCreateByPhone(ctx context.Context, phone string) (domain.User, error)
 	Profile(ctx context.Context, user domain.User) (domain.User, error)
+	FindOrCreateByWechat(ctx context.Context, info domain.WechatInfo) (domain.User, error)
 }
 
 // CodeService 验证码服务

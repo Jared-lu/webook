@@ -22,6 +22,12 @@ func NewUserDAO(db *gorm.DB) UserDAO {
 	return &GormUserDAO{db: db}
 }
 
+func (dao *GormUserDAO) FindByWechatOpenId(ctx context.Context, openId string) (User, error) {
+	var u User
+	err := dao.db.WithContext(ctx).Where("wechat_open_id = ?", openId).First(&u).Error
+	return u, err
+}
+
 func (dao *GormUserDAO) FindById(ctx context.Context, id int64) (User, error) {
 	var u User
 	// 返回查找对象，这里的对象是数据库模型

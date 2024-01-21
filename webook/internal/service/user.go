@@ -21,6 +21,24 @@ func NewUserService(repo repository.UserRepository) UserService {
 	return &userService{repo: repo}
 }
 
+func (svc *userService) FindOrCreateByWechat(ctx context.Context, info domain.WechatInfo) (domain.User, error) {
+	u, err := svc.repo.FindByWechatOpenId(ctx, info.OpenId)
+	if !errors.Is(err, repository.ErrUserNotFound) {
+		return domain.User{}, err
+	}
+	// 没有这个用户
+	u = domain.User{
+		WechatInfo: info,
+	}
+	// 创建用户
+	err = svc.repo.Create(ctx, u)
+	if err != nil && !errors.Is(err, repository.ErrUserDuplicate) {
+		return u, err
+	}
+	// 这里会遇到主从延迟的问题
+	return svc.repo.FindByWechatOpenId(ctx, u.WechatInfo.OpenId)
+}
+
 func (svc *userService) SignUp(ctx context.Context, u domain.User) error {
 	// 加密用户密码
 	hash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
