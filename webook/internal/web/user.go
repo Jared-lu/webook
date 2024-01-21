@@ -41,6 +41,7 @@ func NewUserHandler(svc service.UserService, codeSvc service.CodeService) *UserH
 		codeSvc:     codeSvc,
 		emailExp:    emailExp,
 		passwordExp: passwordExp,
+		jwtHandler:  newJwtHandler(),
 	}
 }
 
@@ -66,6 +67,32 @@ func (u *UserHandler) RegisterRouter(server *gin.Engine) {
 	server.GET("/users/profile", u.ProfileJWT)
 	server.POST("/users/login_sms/code/send", u.SendLoginSMSCode)
 	server.POST("/users/login_sms", u.LoginSMS)
+	server.POST("/users/refresh_token", u.RefreshToken)
+}
+
+// RefreshToken 可以同时刷新长短 token，用 redis 来记录是否有效，即 refresh_token 是一次性的
+// 参考登录校验部分，比较 User-Agent 来增强安全性
+func (u *UserHandler) RefreshToken(ctx *gin.Context) {
+	// 只有这个接口，拿出来的才是 refresh_token，其它地方都是 access token
+	refreshToken := ExtractToken(ctx)
+	var rc RefreshClaims
+	token, err := jwt.ParseWithClaims(refreshToken, &rc, func(token *jwt.Token) (interface{}, error) {
+		// 我要解析的是长token
+		return u.rtkey, nil
+	})
+	if err != nil || !token.Valid {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	// 搞个新的 access_token
+	err = u.setJWTToken(ctx, rc.Uid)
+	if err != nil {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Msg: "刷新成功",
+	})
 }
 
 // SendLoginSMSCode 发送验证码
@@ -150,6 +177,14 @@ func (u *UserHandler) LoginSMS(ctx *gin.Context) {
 		return
 	}
 	err = u.setJWTToken(ctx, user.Id)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	err = u.setRefreshToken(ctx, user.Id)
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
@@ -278,6 +313,14 @@ func (u *UserHandler) LoginJWTV1(ctx *gin.Context) {
 	// 这里要用JWT保存登录态
 
 	if err = u.setJWTToken(ctx, user.Id); err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+
+	if err = u.setRefreshToken(ctx, user.Id); err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  "系统错误",

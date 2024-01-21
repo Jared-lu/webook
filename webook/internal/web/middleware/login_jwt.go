@@ -3,10 +3,7 @@ package middleware
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"log"
 	"net/http"
-	"strings"
-	"time"
 	"webook/webook/internal/web"
 )
 
@@ -37,19 +34,11 @@ func (l *LoginJWTMiddleWareBuilder) Build() gin.HandlerFunc {
 
 		// 校验JWT Token
 		// 前端把token放到 Authorization 首部
-		tokenHeader := ctx.GetHeader("Authorization")
-		if tokenHeader == "" {
-			ctx.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
-		sets := strings.Split(tokenHeader, " ")
-		if len(sets) != 2 {
-			ctx.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
-		tokenStr := sets[1]
+		// 如果这里拿不到，后面的解析肯定失败
+		tokenStr := web.ExtractToken(ctx)
 		claims := &web.JWTUserClaims{} // 要用指针，因为要作为参数，让被掉函数修改再返回来
 		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+			// 我这里校验的是短token
 			return []byte("HiIilLa4O8Xy3Pm8C5mh5HymYaYt9eTj"), nil
 		})
 		if err != nil {
@@ -70,18 +59,18 @@ func (l *LoginJWTMiddleWareBuilder) Build() gin.HandlerFunc {
 		// 方便业务要拿到这个数据
 		ctx.Set("userId", claims.Uid)
 
-		//刷新jwt token
-		// 每一分钟刷一次
-		if claims.ExpiresAt.Sub(time.Now()) > time.Minute*29 {
-			return
-		}
-		// 过期时间要重新设置一下
-		claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute * 30))
-		// 再重新生成token
-		tokenStr, err = token.SignedString([]byte("HiIilLa4O8Xy3Pm8C5mh5HymYaYt9eTj"))
-		if err != nil {
-			log.Println("jwt 续约失败")
-		}
-		ctx.Header("x-jwt-token", tokenStr)
+		////刷新jwt token
+		//// 每一分钟刷一次
+		//if claims.ExpiresAt.Sub(time.Now()) > time.Minute*29 {
+		//	return
+		//}
+		//// 过期时间要重新设置一下
+		//claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute * 30))
+		//// 再重新生成token
+		//tokenStr, err = token.SignedString([]byte("HiIilLa4O8Xy3Pm8C5mh5HymYaYt9eTj"))
+		//if err != nil {
+		//	log.Println("jwt 续约失败")
+		//}
+		//ctx.Header("x-jwt-token", tokenStr)
 	}
 }

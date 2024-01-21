@@ -38,8 +38,10 @@ func InitGinMiddlewares(redisClient redis.Cmdable) []gin.HandlerFunc {
 			IgnorePaths("/users/login").
 			IgnorePaths("/users/login_sms/code/send").
 			IgnorePaths("/users/login_sms").
+			IgnorePaths("/users/refresh_token").
 			IgnorePaths("/oauth2/wechat/oauth2url").
-			IgnorePaths("/oauth2/wechat/callback").Build(),
+			IgnorePaths("/oauth2/wechat/callback").
+			Build(),
 		ratelimit.NewBuilder(initLimiterOfAccess(redisClient)).Build(),
 	}
 }
