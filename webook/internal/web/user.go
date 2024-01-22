@@ -2,14 +2,13 @@ package web
 
 import (
 	"errors"
-	"fmt"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"webook/webook/internal/domain"
 	"webook/webook/internal/service"
+	web "webook/webook/internal/web/jwt"
 )
 
 // 业务
@@ -23,10 +22,10 @@ type UserHandler struct {
 	codeSvc     service.CodeService
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
-	jwtHandler
+	web.JWTHandler
 }
 
-func NewUserHandler(svc service.UserService, codeSvc service.CodeService) *UserHandler {
+func NewUserHandler(svc service.UserService, codeSvc service.CodeService, jwtHdl web.JWTHandler) *UserHandler {
 	const (
 		// 邮箱格式
 		emailRegexPattern = "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"
@@ -41,7 +40,7 @@ func NewUserHandler(svc service.UserService, codeSvc service.CodeService) *UserH
 		codeSvc:     codeSvc,
 		emailExp:    emailExp,
 		passwordExp: passwordExp,
-		jwtHandler:  newJwtHandler(),
+		JWTHandler:  jwtHdl,
 	}
 }
 
@@ -68,28 +67,47 @@ func (u *UserHandler) RegisterRouter(server *gin.Engine) {
 	server.POST("/users/login_sms/code/send", u.SendLoginSMSCode)
 	server.POST("/users/login_sms", u.LoginSMS)
 	server.POST("/users/refresh_token", u.RefreshToken)
+	server.POST("/logout", u.LogoutJWT)
 }
 
-// RefreshToken 可以同时刷新长短 token，用 redis 来记录是否有效，即 refresh_token 是一次性的
-// 参考登录校验部分，比较 User-Agent 来增强安全性
-func (u *UserHandler) RefreshToken(ctx *gin.Context) {
-	// 只有这个接口，拿出来的才是 refresh_token，其它地方都是 access token
-	refreshToken := ExtractToken(ctx)
-	var rc RefreshClaims
-	token, err := jwt.ParseWithClaims(refreshToken, &rc, func(token *jwt.Token) (interface{}, error) {
-		// 我要解析的是长token
-		return u.rtkey, nil
-	})
-	if err != nil || !token.Valid {
-		ctx.AbortWithStatus(http.StatusUnauthorized)
+func (u *UserHandler) LogoutJWT(ctx *gin.Context) {
+	err := u.ClearToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
 		return
 	}
-	// 搞个新的 access_token
-	err = u.setJWTToken(ctx, rc.Uid)
+	ctx.JSON(http.StatusOK, Result{
+		Msg: "退出登录成功",
+	})
+}
+
+// RefreshToken 可以同时刷新长短 token，用 redis 来记录长token是否有效，这时 refresh_token 是一次性的
+// 可用参考登录校验部分，比较 User-Agent 来增强长token的安全性
+func (u *UserHandler) RefreshToken(ctx *gin.Context) {
+	// 只有这个接口，拿出来的才是 refresh_token，其它地方都是 access token
+	//refreshToken := u.ExtractToken(ctx)
+	// 校验token是否有效
+	var claims web.RefreshClaims
+	err := u.CheckToken(ctx, claims, web.RtKey)
+	//token, err := jwt.ParseWithClaims(refreshToken, &claims, func(token *jwt.Token) (interface{}, error) {
+	//	// 我要解析的是长token
+	//	return web.RtKey, nil
+	//})
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
+	// 搞个新的 access_token，即只更新短token
+	err = u.SetJWTToken(ctx, claims.Uid, claims.Ssid)
+	if err != nil {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	// 可以在这里接着刷新长token
+
 	ctx.JSON(http.StatusOK, Result{
 		Msg: "刷新成功",
 	})
@@ -176,15 +194,8 @@ func (u *UserHandler) LoginSMS(ctx *gin.Context) {
 		})
 		return
 	}
-	err = u.setJWTToken(ctx, user.Id)
-	if err != nil {
-		ctx.JSON(http.StatusOK, Result{
-			Code: 5,
-			Msg:  "系统错误",
-		})
-		return
-	}
-	err = u.setRefreshToken(ctx, user.Id)
+
+	err = u.SetLoginToken(ctx, user.Id)
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
@@ -311,16 +322,7 @@ func (u *UserHandler) LoginJWTV1(ctx *gin.Context) {
 		return
 	}
 	// 这里要用JWT保存登录态
-
-	if err = u.setJWTToken(ctx, user.Id); err != nil {
-		ctx.JSON(http.StatusOK, Result{
-			Code: 5,
-			Msg:  "系统错误",
-		})
-		return
-	}
-
-	if err = u.setRefreshToken(ctx, user.Id); err != nil {
+	if err = u.SetLoginToken(ctx, user.Id); err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  "系统错误",
@@ -365,8 +367,7 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 	}
 	// 这里要用JWT保存登录态
 	// 生成JWT token
-	token := jwt.New(jwt.SigningMethodHS512)
-	tokenStr, err := token.SignedString([]byte("HiIilLa4O8Xy3Pm8C5mh5HymYaYt9eTj"))
+	err = u.SetLoginToken(ctx, user.Id)
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
@@ -374,9 +375,6 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 		})
 		return
 	}
-	// 将jwt token返回给前端，通过首部的方式
-	ctx.Header("x-jwt-token", tokenStr)
-	fmt.Println(user)
 
 	ctx.JSON(http.StatusOK, Result{
 		Code: 0,

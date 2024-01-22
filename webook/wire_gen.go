@@ -12,7 +12,8 @@ import (
 	"webook/webook/internal/repository/cache/Redis"
 	"webook/webook/internal/repository/dao"
 	"webook/webook/internal/service"
-	"webook/webook/internal/web"
+	web2 "webook/webook/internal/web"
+	"webook/webook/internal/web/jwt"
 	"webook/webook/ioc"
 )
 
@@ -30,9 +31,10 @@ func initApp() *gin.Engine {
 	codeRepository := repository.NewCacheCodeRepository(codeCache)
 	smsService := ioc.InitSMSService(cmdable)
 	codeService := service.NewSmsCodeService(codeRepository, smsService)
-	userHandler := web.NewUserHandler(userService, codeService)
+	jwtHandler := web.NewRedisJWTHandler(cmdable)
+	userHandler := web2.NewUserHandler(userService, codeService, jwtHandler)
 	wechatService := ioc.InitOAuth2WechatService()
-	oAuth2WechatHandler := web.NewOAuth2WechatHandler(wechatService, userService)
+	oAuth2WechatHandler := web2.NewOAuth2WechatHandler(wechatService, userService, jwtHandler)
 	engine := ioc.InitGinServer(v, userHandler, oAuth2WechatHandler)
 	return engine
 }
