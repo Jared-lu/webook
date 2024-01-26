@@ -5,10 +5,12 @@ import (
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	glogger "gorm.io/gorm/logger"
 	"webook/webook/internal/repository/dao"
+	"webook/webook/pkg/logger"
 )
 
-func InitDB() *gorm.DB {
+func InitDB(l logger.Logger) *gorm.DB {
 	type Config struct {
 		DSN string `yaml:"dsn"`
 	}
@@ -18,7 +20,11 @@ func InitDB() *gorm.DB {
 	if err != nil {
 		fmt.Println("初始化数据库配置失败")
 	}
-	db, err := gorm.Open(mysql.Open(c.DSN))
+	db, err := gorm.Open(mysql.Open(c.DSN), &gorm.Config{
+		Logger: glogger.New(gormLogger(l.Debug), glogger.Config{
+			SlowThreshold: 0,
+			LogLevel:      glogger.Info,
+		})})
 	if err != nil {
 		panic(err)
 	}
@@ -27,6 +33,17 @@ func InitDB() *gorm.DB {
 		panic(err)
 	}
 	return db
+}
+
+type gormLogger func(msg string, args ...logger.Field)
+
+// Printf 适配器模式
+// 但会引起复制
+func (g gormLogger) Printf(msg string, args ...interface{}) {
+	g(msg, logger.Field{
+		Key:   "args",
+		Value: args,
+	})
 }
 
 func initTable(db *gorm.DB) error {

@@ -17,14 +17,17 @@ import (
 func initApp() *gin.Engine {
 	wire.Build(
 		/******** 最底层依赖 ********/
-		ioc.InitDB, ioc.InitRedis, ioc.InitSMSService,
+		ioc.InitDB, ioc.InitRedis,
 		dao.NewUserDAO,
 		cache.NewRedisUserCache, cache.NewRedisCodeCache,
 		repository.NewUserRepository, repository.NewCacheCodeRepository,
 		service.NewUserService, service.NewSmsCodeService,
+		ioc.InitOAuth2WechatService, ioc.InitSMSService,
 		web.NewUserHandler, web.NewOAuth2WechatHandler, web2.NewRedisJWTHandler,
-		ioc.InitGinServer, ioc.InitGinMiddlewares,
-		ioc.InitOAuth2WechatService,
+		/******** 公共组件 ********/
+		ioc.InitZapLogger, ioc.InitGinMiddlewares,
+		/******** 初始化Server ********/
+		ioc.InitGinServer,
 	)
 	return new(gin.Engine)
 }

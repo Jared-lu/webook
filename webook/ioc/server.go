@@ -1,6 +1,7 @@
 package ioc
 
 import (
+	"context"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
@@ -10,8 +11,10 @@ import (
 	"time"
 	"webook/webook/internal/web"
 	"webook/webook/internal/web/middleware"
+	"webook/webook/pkg/ginx/middlewares/logger"
 	"webook/webook/pkg/ginx/middlewares/ratelimit"
 	ratelimit2 "webook/webook/pkg/ginx/ratelimit"
+	logger2 "webook/webook/pkg/logger"
 )
 
 func InitGinServer(middlewares []gin.HandlerFunc, userHandler *web.UserHandler,
@@ -30,9 +33,15 @@ func initLimiterOfAccess(cmd redis.Cmdable) ratelimit2.Limiter {
 	return ratelimit2.NewRedisSlidingWindowLimiter(cmd, time.Second, 100)
 }
 
-func InitGinMiddlewares(redisClient redis.Cmdable) []gin.HandlerFunc {
+func InitGinMiddlewares(redisClient redis.Cmdable, l logger2.Logger) []gin.HandlerFunc {
 	return []gin.HandlerFunc{
 		cordHdl(),
+		logger.NewLoggerBuilder(func(ctx context.Context, al *logger.AccessLog) {
+			l.Debug("HTTP请求", logger2.Field{
+				Key:   "al",
+				Value: al,
+			})
+		}).AllowReqBody().AllowRespBody().Build(),
 		middleware.NewLoginJWTMiddleWareBuilder().
 			IgnorePaths("/users/signup").
 			IgnorePaths("/users/login").

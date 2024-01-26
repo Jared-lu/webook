@@ -9,6 +9,7 @@ import (
 	"webook/webook/internal/domain"
 	"webook/webook/internal/service"
 	web "webook/webook/internal/web/jwt"
+	"webook/webook/pkg/logger"
 )
 
 // 业务
@@ -22,10 +23,11 @@ type UserHandler struct {
 	codeSvc     service.CodeService
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
+	l           logger.Logger
 	web.JWTHandler
 }
 
-func NewUserHandler(svc service.UserService, codeSvc service.CodeService, jwtHdl web.JWTHandler) *UserHandler {
+func NewUserHandler(svc service.UserService, codeSvc service.CodeService, jwtHdl web.JWTHandler, l logger.Logger) *UserHandler {
 	const (
 		// 邮箱格式
 		emailRegexPattern = "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"
@@ -41,6 +43,7 @@ func NewUserHandler(svc service.UserService, codeSvc service.CodeService, jwtHdl
 		emailExp:    emailExp,
 		passwordExp: passwordExp,
 		JWTHandler:  jwtHdl,
+		l:           l,
 	}
 }
 
@@ -71,6 +74,7 @@ func (u *UserHandler) RegisterRouter(server *gin.Engine) {
 }
 
 func (u *UserHandler) LogoutJWT(ctx *gin.Context) {
+	ctx.Next()
 	err := u.ClearToken(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
@@ -84,14 +88,16 @@ func (u *UserHandler) LogoutJWT(ctx *gin.Context) {
 	})
 }
 
-// RefreshToken 可以同时刷新长短 token，用 redis 来记录长token是否有效，这时 refresh_token 是一次性的
+// RefreshToken 刷新短token
+// 也可以同时刷新长短 token，用 redis 来记录长token是否有效，这时 refresh_token 是一次性的
 // 可用参考登录校验部分，比较 User-Agent 来增强长token的安全性
 func (u *UserHandler) RefreshToken(ctx *gin.Context) {
 	// 只有这个接口，拿出来的才是 refresh_token，其它地方都是 access token
 	//refreshToken := u.ExtractToken(ctx)
 	// 校验token是否有效
 	var claims web.RefreshClaims
-	err := u.CheckToken(ctx, claims, web.RtKey)
+	// 这里要保持传入结构体的指针
+	err := u.CheckToken(ctx, &claims, web.RtKey)
 	//token, err := jwt.ParseWithClaims(refreshToken, &claims, func(token *jwt.Token) (interface{}, error) {
 	//	// 我要解析的是长token
 	//	return web.RtKey, nil
@@ -100,6 +106,13 @@ func (u *UserHandler) RefreshToken(ctx *gin.Context) {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
+	// 长token需要检查是否已经退出登录了
+	err = u.CheckSession(ctx, claims.Ssid)
+	if err != nil {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
 	// 搞个新的 access_token，即只更新短token
 	err = u.SetJWTToken(ctx, claims.Uid, claims.Ssid)
 	if err != nil {
