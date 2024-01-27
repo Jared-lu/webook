@@ -13,3 +13,8 @@ type UserDAO interface {
 	FindByPhone(ctx context.Context, phone string) (User, error)
 	FindByWechatOpenId(ctx context.Context, openId string) (User, error)
 }
+
+type ArticleDAO interface {
+	Insert(ctx context.Context, art Article) (int64, error)
+	UpdateById(ctx context.Context, art Article) error
+}

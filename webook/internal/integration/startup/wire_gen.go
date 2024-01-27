@@ -8,11 +8,13 @@ package startup
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/google/wire"
 	"webook/webook/internal/repository"
 	"webook/webook/internal/repository/cache/Redis"
 	"webook/webook/internal/repository/dao"
 	"webook/webook/internal/service"
-	"webook/webook/internal/web"
+	web2 "webook/webook/internal/web"
+	"webook/webook/internal/web/jwt"
 )
 
 // Injectors from wire.go:
@@ -29,7 +31,26 @@ func InitApp() *gin.Engine {
 	codeRepository := repository.NewCacheCodeRepository(codeCache)
 	smsService := InitSMSService()
 	codeService := service.NewSmsCodeService(codeRepository, smsService)
-	userHandler := web.NewUserHandler(userService, codeService)
-	engine := InitGinServer(v, userHandler)
+	jwtHandler := web.NewRedisJWTHandler(cmdable)
+	logger := InitZapLogger()
+	userHandler := web2.NewUserHandler(userService, codeService, jwtHandler, logger)
+	wechatService := InitOAuth2WechatService()
+	oAuth2WechatHandler := web2.NewOAuth2WechatHandler(wechatService, userService, jwtHandler)
+	engine := InitGinServer(v, userHandler, oAuth2WechatHandler)
 	return engine
 }
+
+// InitArticleHandler 单独初始化某一部分，可以更好的为测试而定制
+func InitArticleHandler() *web2.ArticleHandler {
+	db := InitDB()
+	articleDAO := dao.NewGORMArticleDAO(db)
+	articleRepository := repository.NewCacheArticleRepository(articleDAO)
+	articleService := service.NewArticleService(articleRepository)
+	logger := InitZapLogger()
+	articleHandler := web2.NewArticleHandler(articleService, logger)
+	return articleHandler
+}
+
+// wire.go:
+
+var thirdProvider = wire.NewSet(InitDB, InitRedis, InitZapLogger)

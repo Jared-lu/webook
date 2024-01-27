@@ -21,3 +21,8 @@ type CodeRepository interface {
 	Store(ctx context.Context, biz string, phone string, code string) error
 	Verify(ctx context.Context, biz, phone, inputCode string) (bool, error)
 }
+
+type ArticleRepository interface {
+	Create(ctx context.Context, art domain.Article) (int64, error)
+	Update(ctx context.Context, art domain.Article) error
+}
