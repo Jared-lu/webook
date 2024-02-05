@@ -189,3 +189,160 @@ func (mr *MockCodeRepositoryMockRecorder) Verify(ctx, biz, phone, inputCode inte
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Verify", reflect.TypeOf((*MockCodeRepository)(nil).Verify), ctx, biz, phone, inputCode)
 }
+
+// MockArticleRepository is a mock of ArticleRepository interface.
+type MockArticleRepository struct {
+	ctrl     *gomock.Controller
+	recorder *MockArticleRepositoryMockRecorder
+}
+
+// MockArticleRepositoryMockRecorder is the mock recorder for MockArticleRepository.
+type MockArticleRepositoryMockRecorder struct {
+	mock *MockArticleRepository
+}
+
+// NewMockArticleRepository creates a new mock instance.
+func NewMockArticleRepository(ctrl *gomock.Controller) *MockArticleRepository {
+	mock := &MockArticleRepository{ctrl: ctrl}
+	mock.recorder = &MockArticleRepositoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockArticleRepository) EXPECT() *MockArticleRepositoryMockRecorder {
+	return m.recorder
+}
+
+// Create mocks base method.
+func (m *MockArticleRepository) Create(ctx context.Context, art domain.Article) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create", ctx, art)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockArticleRepositoryMockRecorder) Create(ctx, art interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockArticleRepository)(nil).Create), ctx, art)
+}
+
+// SyncV1 mocks base method.
+func (m *MockArticleRepository) SyncV1(ctx context.Context, art domain.Article) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SyncV1", ctx, art)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SyncV1 indicates an expected call of SyncV1.
+func (mr *MockArticleRepositoryMockRecorder) SyncV1(ctx, art interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SyncV1", reflect.TypeOf((*MockArticleRepository)(nil).SyncV1), ctx, art)
+}
+
+// Update mocks base method.
+func (m *MockArticleRepository) Update(ctx context.Context, art domain.Article) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update", ctx, art)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update.
+func (mr *MockArticleRepositoryMockRecorder) Update(ctx, art interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockArticleRepository)(nil).Update), ctx, art)
+}
+
+// MockArticleAuthorRepository is a mock of ArticleAuthorRepository interface.
+type MockArticleAuthorRepository struct {
+	ctrl     *gomock.Controller
+	recorder *MockArticleAuthorRepositoryMockRecorder
+}
+
+// MockArticleAuthorRepositoryMockRecorder is the mock recorder for MockArticleAuthorRepository.
+type MockArticleAuthorRepositoryMockRecorder struct {
+	mock *MockArticleAuthorRepository
+}
+
+// NewMockArticleAuthorRepository creates a new mock instance.
+func NewMockArticleAuthorRepository(ctrl *gomock.Controller) *MockArticleAuthorRepository {
+	mock := &MockArticleAuthorRepository{ctrl: ctrl}
+	mock.recorder = &MockArticleAuthorRepositoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockArticleAuthorRepository) EXPECT() *MockArticleAuthorRepositoryMockRecorder {
+	return m.recorder
+}
+
+// Create mocks base method.
+func (m *MockArticleAuthorRepository) Create(ctx context.Context, art domain.Article) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create", ctx, art)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockArticleAuthorRepositoryMockRecorder) Create(ctx, art interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockArticleAuthorRepository)(nil).Create), ctx, art)
+}
+
+// Update mocks base method.
+func (m *MockArticleAuthorRepository) Update(ctx context.Context, art domain.Article) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update", ctx, art)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update.
+func (mr *MockArticleAuthorRepositoryMockRecorder) Update(ctx, art interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockArticleAuthorRepository)(nil).Update), ctx, art)
+}
+
+// MockArticleReaderRepository is a mock of ArticleReaderRepository interface.
+type MockArticleReaderRepository struct {
+	ctrl     *gomock.Controller
+	recorder *MockArticleReaderRepositoryMockRecorder
+}
+
+// MockArticleReaderRepositoryMockRecorder is the mock recorder for MockArticleReaderRepository.
+type MockArticleReaderRepositoryMockRecorder struct {
+	mock *MockArticleReaderRepository
+}
+
+// NewMockArticleReaderRepository creates a new mock instance.
+func NewMockArticleReaderRepository(ctrl *gomock.Controller) *MockArticleReaderRepository {
+	mock := &MockArticleReaderRepository{ctrl: ctrl}
+	mock.recorder = &MockArticleReaderRepositoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockArticleReaderRepository) EXPECT() *MockArticleReaderRepositoryMockRecorder {
+	return m.recorder
+}
+
+// Save mocks base method.
+func (m *MockArticleReaderRepository) Save(ctx context.Context, art domain.Article) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Save", ctx, art)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Save indicates an expected call of Save.
+func (mr *MockArticleReaderRepositoryMockRecorder) Save(ctx, art interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Save", reflect.TypeOf((*MockArticleReaderRepository)(nil).Save), ctx, art)
+}

@@ -52,3 +52,8 @@ type Article struct {
 	Ctime    int64
 	Utime    int64
 }
+
+// PublicArticle 同库不同表下，线上表
+type PublicArticle struct {
+	Article
+}

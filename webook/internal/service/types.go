@@ -25,4 +25,6 @@ type CodeService interface {
 type ArticleService interface {
 	// Save 保存文章，并返回文章ID
 	Save(ctx context.Context, art domain.Article) (int64, error)
+	Publish(ctx context.Context, art domain.Article) (int64, error)
+	PublishV1(ctx context.Context, art domain.Article) (int64, error)
 }

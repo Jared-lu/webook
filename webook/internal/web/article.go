@@ -22,15 +22,50 @@ func NewArticleHandler(svc service.ArticleService, l logger.Logger) *ArticleHand
 func (h *ArticleHandler) RegisterRouter(server *gin.Engine) {
 	g := server.Group("/articles")
 	g.POST("/edit", h.Edit)
+	g.POST("/publish", h.Publish)
+}
+
+func (h *ArticleHandler) Publish(ctx *gin.Context) {
+	var req ArticleReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+
+	uid, ok := ctx.Get("userId")
+	userId, ok := uid.(int64)
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		h.l.Error("未发现用户的session信息")
+		return
+	}
+
+	id, err := h.svc.Publish(ctx.Request.Context(), domain.Article{
+		// 新建并发表时是没有ID的，为0
+		Id:      req.Id,
+		Title:   req.Title,
+		Content: req.Content,
+		Author: domain.Author{
+			Id: userId,
+		},
+	})
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Data: id,
+		Msg:  "OK",
+	})
 }
 
 func (h *ArticleHandler) Edit(ctx *gin.Context) {
-	type Req struct {
-		Id      int64  `json:"id"`
-		Title   string `json:"title"`
-		Content string `json:"content"`
-	}
-	var req Req
+	var req ArticleReq
 	if err := ctx.Bind(&req); err != nil {
 		return
 	}
@@ -66,5 +101,10 @@ func (h *ArticleHandler) Edit(ctx *gin.Context) {
 		Data: id,
 		Msg:  "OK",
 	})
+}
 
+type ArticleReq struct {
+	Id      int64  `json:"id"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
 }

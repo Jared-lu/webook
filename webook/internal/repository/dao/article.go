@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"time"
 )
 
@@ -13,6 +14,49 @@ type GORMArticleDAO struct {
 
 func NewGORMArticleDAO(db *gorm.DB) ArticleDAO {
 	return &GORMArticleDAO{db: db}
+}
+
+func (dao *GORMArticleDAO) Upsert(ctx context.Context, art PublicArticle) error {
+	now := time.Now().UnixMilli()
+	art.Ctime = now
+	art.Utime = now
+	err := dao.db.Clauses(clause.OnConflict{
+		// MySql 只需要这个字段
+		DoUpdates: clause.Assignments(map[string]interface{}{
+			"title":   art.Title,
+			"content": art.Content,
+			"utime":   now,
+		}),
+	}).Create(&art).Error
+	// MySQL生成的语句: INSERT xxx ON DUPLICATE KEY UPDATE xxx
+	// MySQL 的 upsert 语句不支持查询条件
+	return err
+}
+
+func (dao *GORMArticleDAO) Sync(ctx context.Context, art Article) (int64, error) {
+	// 在DAO层面控制事务，不能跨库，因此操作的是两个不同的表
+	// 闭包形态的事务，由GORM负责管理事务的生命周期
+	var id = art.Id
+	err := dao.db.Transaction(func(tx *gorm.DB) error {
+		// 业务逻辑
+		var (
+			err error
+		)
+		// 操作制作库
+		// 由于MySQL的upsert语句不支持where语句，因此只能分开为更新和插入语句
+		txDAO := NewGORMArticleDAO(tx)
+		if id > 0 {
+			err = txDAO.UpdateById(ctx, art)
+		} else {
+			id, err = txDAO.Insert(ctx, art)
+		}
+		if err != nil {
+			return err
+		}
+		// 操作线上库
+		return txDAO.Upsert(ctx, PublicArticle{Article: art})
+	})
+	return id, err
 }
 
 func (dao *GORMArticleDAO) Insert(ctx context.Context, art Article) (int64, error) {
