@@ -26,6 +26,10 @@ func NewCacheArticleRepository(dao dao.ArticleDAO) ArticleRepository {
 	return &CacheArticleRepository{dao: dao}
 }
 
+func (r *CacheArticleRepository) SyncStatus(ctx context.Context, id int64, authorId int64, status domain.ArticleStatus) error {
+	return r.dao.SyncStatus(ctx, id, authorId, status.ToUint8())
+}
+
 // Sync 数据同步交给DAO层解决，在 repository 这一层认为只有一个DAO
 func (r *CacheArticleRepository) Sync(ctx context.Context, art domain.Article) (int64, error) {
 	return r.dao.Sync(ctx, r.toEntity(art))

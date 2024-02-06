@@ -1,6 +1,8 @@
 package dao
 
-import "context"
+import (
+	"context"
+)
 
 //go:generate mockgen -source=./types.go -package=daomocks -destination=./mocks/dao.mock.go
 
@@ -19,6 +21,7 @@ type ArticleDAO interface {
 	UpdateById(ctx context.Context, art Article) error
 	Sync(ctx context.Context, art Article) (int64, error)
 	Upsert(ctx context.Context, art PublishedArticle) error
+	SyncStatus(ctx context.Context, id int64, authorId int64, status uint8) error
 }
 
 type ArticleAuthorDAO interface {

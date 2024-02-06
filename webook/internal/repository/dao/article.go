@@ -16,6 +16,31 @@ func NewGORMArticleDAO(db *gorm.DB) ArticleDAO {
 	return &GORMArticleDAO{db: db}
 }
 
+func (dao *GORMArticleDAO) SyncStatus(ctx context.Context, id int64, authorId int64, status uint8) error {
+	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		now := time.Now().UnixMilli()
+		res := tx.Model(&Article{}).Where("id = ? AND author_id = ?", id, authorId).
+			Updates(map[string]any{
+				"status": status,
+				"utime":  now,
+			})
+		if res.Error != nil {
+			// 数据库有问题
+			return res.Error
+		}
+		if res.RowsAffected != 1 {
+			// 要么id是错的，要么作者不对
+			// 这可能是由黑客入侵
+			return fmt.Errorf("非法操作 uid: %d, aid: %d", authorId, id)
+		}
+		return tx.Model(&PublishedArticle{}).Where("id = ?", id).
+			Updates(map[string]any{
+				"status": status,
+				"utime":  now,
+			}).Error
+	})
+}
+
 func (dao *GORMArticleDAO) Upsert(ctx context.Context, art PublishedArticle) error {
 	now := time.Now().UnixMilli()
 	art.Ctime = now
@@ -38,7 +63,7 @@ func (dao *GORMArticleDAO) Sync(ctx context.Context, art Article) (int64, error)
 	// 在DAO层面控制事务，不能跨库，因此操作的是两个不同的表
 	// 闭包形态的事务，由GORM负责管理事务的生命周期
 	var id = art.Id
-	err := dao.db.Transaction(func(tx *gorm.DB) error {
+	err := dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 业务逻辑
 		var (
 			err error

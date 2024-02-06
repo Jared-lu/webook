@@ -29,6 +29,7 @@ type ArticleRepository interface {
 	SyncV1(ctx context.Context, art domain.Article) (int64, error)
 	SyncV2(ctx context.Context, art domain.Article) (int64, error)
 	Sync(ctx context.Context, art domain.Article) (int64, error)
+	SyncStatus(ctx context.Context, id int64, authorId int64, status domain.ArticleStatus) error
 }
 
 type ArticleAuthorRepository interface {

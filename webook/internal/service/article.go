@@ -22,6 +22,10 @@ func NewArticleServiceV1(author repository.ArticleAuthorRepository,
 	return &articleService{author: author, reader: reader, l: l}
 }
 
+func (a *articleService) Withdraw(ctx context.Context, art domain.Article) error {
+	return a.repo.SyncStatus(ctx, art.Id, art.Author.Id, domain.ArticleStatusPrivate)
+}
+
 func NewArticleService(repo repository.ArticleRepository) ArticleService {
 	return &articleService{repo: repo}
 }
