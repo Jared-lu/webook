@@ -54,7 +54,7 @@ type Article struct {
 	Utime    int64
 }
 
-// PublishedArticle 同库不同表下，线上表
+// PublishedArticle 代表线上库的文章
 type PublishedArticle struct {
 	Article
 }
