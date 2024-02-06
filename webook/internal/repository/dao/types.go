@@ -18,7 +18,7 @@ type ArticleDAO interface {
 	Insert(ctx context.Context, art Article) (int64, error)
 	UpdateById(ctx context.Context, art Article) error
 	Sync(ctx context.Context, art Article) (int64, error)
-	Upsert(ctx context.Context, art PublicArticle) error
+	Upsert(ctx context.Context, art PublishedArticle) error
 }
 
 type ArticleAuthorDAO interface {
@@ -28,5 +28,5 @@ type ArticleAuthorDAO interface {
 
 type ArticleReaderDAO interface {
 	Upsert(ctx context.Context, art Article) error
-	UpsertV2(ctx context.Context, art PublicArticle) error
+	UpsertV2(ctx context.Context, art PublishedArticle) error
 }

@@ -49,11 +49,12 @@ type Article struct {
 
 	// 2. 在 author_id上创建索引
 	AuthorId int64 `gorm:"index"`
+	Status   uint8
 	Ctime    int64
 	Utime    int64
 }
 
-// PublicArticle 同库不同表下，线上表
-type PublicArticle struct {
+// PublishedArticle 同库不同表下，线上表
+type PublishedArticle struct {
 	Article
 }

@@ -16,7 +16,7 @@ func NewGORMArticleDAO(db *gorm.DB) ArticleDAO {
 	return &GORMArticleDAO{db: db}
 }
 
-func (dao *GORMArticleDAO) Upsert(ctx context.Context, art PublicArticle) error {
+func (dao *GORMArticleDAO) Upsert(ctx context.Context, art PublishedArticle) error {
 	now := time.Now().UnixMilli()
 	art.Ctime = now
 	art.Utime = now
@@ -25,6 +25,7 @@ func (dao *GORMArticleDAO) Upsert(ctx context.Context, art PublicArticle) error 
 		DoUpdates: clause.Assignments(map[string]interface{}{
 			"title":   art.Title,
 			"content": art.Content,
+			"status":  art.Status,
 			"utime":   now,
 		}),
 	}).Create(&art).Error
@@ -54,7 +55,7 @@ func (dao *GORMArticleDAO) Sync(ctx context.Context, art Article) (int64, error)
 			return err
 		}
 		// 操作线上库
-		return txDAO.Upsert(ctx, PublicArticle{Article: art})
+		return txDAO.Upsert(ctx, PublishedArticle{Article: art})
 	})
 	return id, err
 }
@@ -77,6 +78,7 @@ func (dao *GORMArticleDAO) UpdateById(ctx context.Context, art Article) error {
 		Where("id = ? AND author_id = ?", art.Id, art.AuthorId).Updates(map[string]any{
 		"title":   art.Title,
 		"content": art.Content,
+		"status":  art.Status,
 		"utime":   art.Utime,
 	})
 	if res.RowsAffected == 0 {

@@ -204,6 +204,10 @@ func (s *ArticleHandlerTestSuite) TestArticleHandler_Edit() {
 	}
 }
 
+func (s *ArticleHandlerTestSuite) TestArticleHandler_Publish() {
+	panic("implement me")
+}
+
 // Article 预期中的article输入，测试用的
 type Article struct {
 	Id      int64  `json:"id"`

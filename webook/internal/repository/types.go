@@ -27,6 +27,8 @@ type ArticleRepository interface {
 	Update(ctx context.Context, art domain.Article) error
 	// SyncV1 存储并同步数据
 	SyncV1(ctx context.Context, art domain.Article) (int64, error)
+	SyncV2(ctx context.Context, art domain.Article) (int64, error)
+	Sync(ctx context.Context, art domain.Article) (int64, error)
 }
 
 type ArticleAuthorRepository interface {

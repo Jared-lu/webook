@@ -27,6 +27,7 @@ func NewArticleService(repo repository.ArticleRepository) ArticleService {
 }
 
 func (a *articleService) Save(ctx context.Context, art domain.Article) (int64, error) {
+	art.Status = domain.ArticleStatusUnpublished
 	if art.Id > 0 {
 		// id > 0，说明不是新建，是编辑
 		return art.Id, a.repo.Update(ctx, art)
@@ -35,11 +36,12 @@ func (a *articleService) Save(ctx context.Context, art domain.Article) (int64, e
 }
 
 func (a *articleService) Publish(ctx context.Context, art domain.Article) (int64, error) {
+	art.Status = domain.ArticleStatusPublished
 	//// 制作库
 	//a.repo.Create(ctx, art)
 	//// 同步到制作库
 	//a.repo.SyncToLiveDB(ctx, art)
-	return a.repo.SyncV1(ctx, art)
+	return a.repo.Sync(ctx, art)
 }
 func (a *articleService) PublishV1(ctx context.Context, art domain.Article) (int64, error) {
 	var (

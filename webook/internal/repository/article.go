@@ -26,6 +26,7 @@ func NewCacheArticleRepository(dao dao.ArticleDAO) ArticleRepository {
 	return &CacheArticleRepository{dao: dao}
 }
 
+// Sync 数据同步交给DAO层解决，在 repository 这一层认为只有一个DAO
 func (r *CacheArticleRepository) Sync(ctx context.Context, art domain.Article) (int64, error) {
 	return r.dao.Sync(ctx, r.toEntity(art))
 }
@@ -64,7 +65,7 @@ func (r *CacheArticleRepository) SyncV2(ctx context.Context, art domain.Article)
 	// 不要忘了同步id
 	artn.Id = id
 	// 操作线上库
-	err = readerDAO.UpsertV2(ctx, dao.PublicArticle{Article: artn})
+	err = readerDAO.UpsertV2(ctx, dao.PublishedArticle{Article: artn})
 	tx.Commit() // 执行成功，提交事务
 	return id, err
 }
@@ -98,6 +99,7 @@ func (r *CacheArticleRepository) Create(ctx context.Context, art domain.Article)
 		Title:    art.Title,
 		Content:  art.Content,
 		AuthorId: art.Author.Id,
+		Status:   art.Status.ToUint8(),
 	})
 }
 
@@ -107,6 +109,7 @@ func (r *CacheArticleRepository) Update(ctx context.Context, art domain.Article)
 		Title:    art.Title,
 		Content:  art.Content,
 		AuthorId: art.Author.Id,
+		Status:   art.Status.ToUint8(),
 	})
 }
 
@@ -116,5 +119,6 @@ func (r *CacheArticleRepository) toEntity(art domain.Article) dao.Article {
 		Title:    art.Title,
 		Content:  art.Content,
 		AuthorId: art.Author.Id,
+		Status:   art.Status.ToUint8(),
 	}
 }
