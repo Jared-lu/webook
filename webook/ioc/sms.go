@@ -19,7 +19,7 @@ import (
 //}
 
 func InitSMSService(cmd redis.Cmdable) sms.Service {
-	return initRateLimitSmsService(cmd)
+	return initMemorySMSService()
 }
 
 // 腾讯云短信服务
