@@ -10,13 +10,17 @@ import (
 	"time"
 	"webook/webook/internal/web"
 	"webook/webook/internal/web/middleware"
+	"webook/webook/pkg/ginx/middlewares/ratelimit"
+	ratelimit2 "webook/webook/pkg/ginx/ratelimit"
 )
 
-func InitGinServer(middlewares []gin.HandlerFunc, userHandler *web.UserHandler) *gin.Engine {
+func InitGinServer(middlewares []gin.HandlerFunc, userHandler *web.UserHandler,
+	wechatHandler *web.OAuth2WechatHandler) *gin.Engine {
 	server := gin.Default()
 	server.Use(middlewares...)
 	// 注册路由
 	userHandler.RegisterRouter(server)
+	wechatHandler.RegisterRoutes(server)
 	return server
 }
 
@@ -28,8 +32,14 @@ func InitGinMiddlewares(redisClient redis.Cmdable) []gin.HandlerFunc {
 			IgnorePaths("/users/login").
 			IgnorePaths("/users/login_sms/code/send").
 			IgnorePaths("/users/login_sms").Build(),
-		//ratelimit.NewBuilder(redisClient, time.Second, 100).Build(),
+		ratelimit.NewBuilder(initLimiterOfAccess(redisClient)).Build(),
 	}
+}
+
+// initLimiterOfAccess 服务端的访问限流器
+func initLimiterOfAccess(cmd redis.Cmdable) ratelimit2.Limiter {
+	// 每秒限流100个请求
+	return ratelimit2.NewRedisSlidingWindowLimiter(cmd, time.Second, 100)
 }
 
 // cordHdl 跨域请求

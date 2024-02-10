@@ -16,6 +16,7 @@ import (
 	"webook/webook/internal/domain"
 	"webook/webook/internal/service"
 	svcmocks "webook/webook/internal/service/mocks"
+	"webook/webook/pkg/logger"
 )
 
 func TestTypeAssert(t *testing.T) {
@@ -195,7 +196,7 @@ func TestUserHandler_SignUp(t *testing.T) {
 			// 和正常使用一样，都需要先初始化服务器和UserHandler等操作
 			server := gin.Default()
 			// Signup接口不需要用到验证码服务
-			u := NewUserHandler(tc.mock(ctrl), nil)
+			u := NewUserHandler(tc.mock(ctrl), nil, nil, logger.NewNoOpLogger())
 			u.RegisterRouter(server)
 			// 构造http请求
 			req, err := http.NewRequest(http.MethodPost, "/users/signup", bytes.NewBuffer([]byte(tc.reqBody)))
@@ -313,7 +314,7 @@ func TestUserHandler_LoginJWTV1(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			server := gin.Default()
-			u := NewUserHandler(tc.mock(ctrl), nil)
+			u := NewUserHandler(tc.mock(ctrl), nil, nil, logger.NewNoOpLogger())
 			u.RegisterRouter(server)
 			req, err := http.NewRequest(http.MethodPost, "/users/login", bytes.NewBuffer([]byte(tc.reqBody)))
 			require.NoError(t, err)
@@ -341,33 +342,6 @@ func TestUserHandler_LoginSMS(t *testing.T) {
 		wantCode int
 		wantBody Result
 	}{
-		/*{
-					name: "登录成功",
-					reqBody: `
-		{
-		    "phone": "13761234565",
-		    "code": "355673"
-		}
-		`,
-					mock: func(ctrl *gomock.Controller) (service.UserService, service.CodeService) {
-						codeSvc := svcmocks.NewMockCodeService(ctrl)
-						codeSvc.EXPECT().Verify(context.Background(), biz, "13761234565", "355673").
-							Return(true, nil)
-
-						userSvc := svcmocks.NewMockUserService(ctrl)
-						userSvc.EXPECT().FindOrCreateByPhone(context.Background(), "13761234565").
-							Return(domain.User{
-								Id:    1,
-								Phone: "13761234565",
-							}, nil)
-
-						return userSvc, codeSvc
-					},
-					wantCode: http.StatusOK,
-					wantBody: Result{
-						Code: 0,
-						Msg:  "验证码校验通过"},
-				},*/
 		{
 			name: "登录成功-2",
 			reqBody: `
@@ -445,30 +419,6 @@ func TestUserHandler_LoginSMS(t *testing.T) {
 				Msg:  "验证码不对",
 			},
 		},
-		/*{
-					name: "系统错误",
-					reqBody: `
-		{
-		    "phone": "13761234565",
-		    "code": "355673"
-		}
-		`,
-					mock: func(ctrl *gomock.Controller) (service.UserService, service.CodeService) {
-						codeSvc := svcmocks.NewMockCodeService(ctrl)
-						codeSvc.EXPECT().Verify(context.Background(), biz, "13761234565", "355673").
-							Return(true, nil)
-
-						userSvc := svcmocks.NewMockUserService(ctrl)
-						userSvc.EXPECT().FindOrCreateByPhone(context.Background(), "13761234565").
-							Return(domain.User{}, errors.New("系统错误"))
-						return userSvc, codeSvc
-					},
-					wantCode: http.StatusOK,
-					wantBody: Result{
-						Code: 5,
-						Msg:  "系统错误",
-					},
-				},*/
 		{
 			name: "系统错误-2",
 			reqBody: `
@@ -499,7 +449,8 @@ func TestUserHandler_LoginSMS(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			server := gin.Default()
-			u := NewUserHandler(tc.mock(ctrl))
+			userSvc, codeSvc := tc.mock(ctrl)
+			u := NewUserHandler(userSvc, codeSvc, nil, logger.NewNoOpLogger())
 			u.RegisterRouter(server)
 			// 构造http请求
 			req, err := http.NewRequest(http.MethodPost, "/users/login_sms", bytes.NewBuffer([]byte(tc.reqBody)))
