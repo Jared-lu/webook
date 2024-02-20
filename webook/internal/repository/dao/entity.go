@@ -58,3 +58,6 @@ type Article struct {
 type PublishedArticle struct {
 	Article
 }
+
+// 另一种写法
+//type PublishedArticle Article
