@@ -7,6 +7,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"sync"
 	"time"
+	"webook/webook/internal/repository/cache"
 )
 
 var (
@@ -22,7 +23,7 @@ type CodeLocalCache struct {
 	expiration time.Duration
 }
 
-func NewCodeLocalCache(cache *lru.Cache, expiration time.Duration) *CodeLocalCache {
+func NewCodeLocalCache(cache *lru.Cache, expiration time.Duration) cache.CodeCache {
 	return &CodeLocalCache{cache: cache, expiration: expiration}
 }
 
