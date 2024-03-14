@@ -20,7 +20,6 @@ type ArticleDAO interface {
 	Insert(ctx context.Context, art Article) (int64, error)
 	UpdateById(ctx context.Context, art Article) error
 	Sync(ctx context.Context, art Article) (int64, error)
-	Upsert(ctx context.Context, art PublishedArticle) error
 	SyncStatus(ctx context.Context, id int64, authorId int64, status uint8) error
 }
 

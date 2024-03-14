@@ -62,27 +62,65 @@ func (dao *GORMArticleDAO) Upsert(ctx context.Context, art PublishedArticle) err
 func (dao *GORMArticleDAO) Sync(ctx context.Context, art Article) (int64, error) {
 	// 在DAO层面控制事务，不能跨库，因此操作的是两个不同的表
 	// 闭包形态的事务，由GORM负责管理事务的生命周期
-	var id = art.Id
-	err := dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// 业务逻辑
-		var (
-			err error
-		)
-		// 操作制作库
-		// 由于MySQL的upsert语句不支持where语句，因此只能分开为更新和插入语句
-		txDAO := NewGORMArticleDAO(tx)
-		if id > 0 {
-			err = txDAO.UpdateById(ctx, art)
-		} else {
-			id, err = txDAO.Insert(ctx, art)
-		}
-		if err != nil {
-			return err
-		}
-		// 操作线上库
-		return txDAO.Upsert(ctx, PublishedArticle{Article: art})
-	})
-	return id, err
+	//var id = art.Id
+	//err := dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	//	// 业务逻辑
+	//	var (
+	//		err error
+	//	)
+	//	// 操作制作库
+	//	// 由于MySQL的upsert语句不支持where语句，因此只能分开为更新和插入语句
+	//	txDAO := NewGORMArticleDAO(tx)
+	//	if id > 0 {
+	//		err = txDAO.UpdateById(ctx, art)
+	//	} else {
+	//		id, err = txDAO.Insert(ctx, art)
+	//	}
+	//	if err != nil {
+	//		return err
+	//	}
+	//	// 操作线上库
+	//	return txDAO.Upsert(ctx, PublishedArticle{Article: art})
+	//})
+	//return id, err
+
+	tx := dao.db.WithContext(ctx).Begin()
+	now := time.Now().UnixMilli()
+	defer tx.Rollback()
+	txDAO := NewGORMArticleDAO(tx)
+	var (
+		id  = art.Id
+		err error
+	)
+	if id == 0 {
+		id, err = txDAO.Insert(ctx, art)
+	} else {
+		err = txDAO.UpdateById(ctx, art)
+	}
+	if err != nil {
+		return 0, err
+	}
+	art.Id = id
+	publishArt := PublishedArticle{
+		Article: art,
+	}
+	publishArt.Utime = now
+	publishArt.Ctime = now
+	err = tx.Clauses(clause.OnConflict{
+		// ID 冲突的时候。实际上，在 MYSQL 里面你写不写都可以
+		Columns: []clause.Column{{Name: "id"}},
+		DoUpdates: clause.Assignments(map[string]interface{}{
+			"title":   art.Title,
+			"content": art.Content,
+			"status":  art.Status,
+			"utime":   now,
+		}),
+	}).Create(&publishArt).Error
+	if err != nil {
+		return 0, err
+	}
+	tx.Commit()
+	return id, tx.Error
 }
 
 func (dao *GORMArticleDAO) Insert(ctx context.Context, art Article) (int64, error) {
