@@ -91,6 +91,7 @@ func TestCRUD(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
+
 	delRes, err := col.DeleteMany(ctx, filter)
 	if err != nil {
 		panic(err)
