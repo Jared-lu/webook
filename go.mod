@@ -22,7 +22,12 @@ require (
 	go.mongodb.org/mongo-driver v1.9.0
 	go.uber.org/mock v0.4.0
 	go.uber.org/zap v1.26.0
+<<<<<<< HEAD
 	golang.org/x/crypto v0.19.0
+=======
+	golang.org/x/crypto v0.16.0
+	golang.org/x/sync v0.5.0
+>>>>>>> 812aa049b36eb6fd57f769eaf1e15c30ee5b2167
 	gorm.io/driver/mysql v1.5.2
 	gorm.io/gorm v1.25.5
 )

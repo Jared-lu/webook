@@ -21,6 +21,9 @@ type ArticleDAO interface {
 	UpdateById(ctx context.Context, art Article) error
 	Sync(ctx context.Context, art Article) (int64, error)
 	SyncStatus(ctx context.Context, id int64, authorId int64, status uint8) error
+	GetByAuthor(ctx context.Context, authorId int64, offset int, limit int) ([]Article, error)
+	GetById(ctx context.Context, id int64) (Article, error)
+	GetPubById(ctx context.Context, id int64) (PublishedArticle, error)
 }
 
 type ArticleAuthorDAO interface {

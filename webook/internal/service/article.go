@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/gin-gonic/gin"
 	"webook/webook/internal/domain"
 	"webook/webook/internal/repository"
 	"webook/webook/pkg/logger"
@@ -15,6 +16,29 @@ type articleService struct {
 	reader repository.ArticleReaderRepository
 
 	l logger.Logger
+}
+
+func (a *articleService) GetPublishedById(ctx *gin.Context, id int64, uid int64) (domain.Article, error) {
+	// 另一个选项，在这里组装 Author，调用 UserService
+	art, err := a.repo.GetPublishedById(ctx, id)
+	if err == nil {
+		//go func() {
+		//	// 改批量的做法
+		//	a.ch <- readInfo{
+		//		aid: id,
+		//		uid: uid,
+		//	}
+		//}()
+	}
+	return art, err
+}
+
+func (a *articleService) List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error) {
+	return a.repo.List(ctx, uid, offset, limit)
+}
+
+func (a *articleService) GetById(ctx context.Context, id int64) (domain.Article, error) {
+	return a.repo.GetByID(ctx, id)
 }
 
 func NewArticleServiceV1(author repository.ArticleAuthorRepository,

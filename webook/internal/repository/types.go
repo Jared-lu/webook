@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"github.com/gin-gonic/gin"
 	"webook/webook/internal/domain"
 )
 
@@ -30,6 +31,9 @@ type ArticleRepository interface {
 	SyncV2(ctx context.Context, art domain.Article) (int64, error)
 	Sync(ctx context.Context, art domain.Article) (int64, error)
 	SyncStatus(ctx context.Context, id int64, authorId int64, status domain.ArticleStatus) error
+	List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
+	GetByID(ctx context.Context, id int64) (domain.Article, error)
+	GetPublishedById(ctx *gin.Context, id int64) (domain.Article, error)
 }
 
 type ArticleAuthorRepository interface {

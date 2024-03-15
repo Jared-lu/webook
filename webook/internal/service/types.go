@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/gin-gonic/gin"
 	"webook/webook/internal/domain"
 )
 
@@ -28,4 +29,7 @@ type ArticleService interface {
 	Publish(ctx context.Context, art domain.Article) (int64, error)
 	PublishV1(ctx context.Context, art domain.Article) (int64, error)
 	Withdraw(ctx context.Context, art domain.Article) error
+	List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
+	GetById(ctx context.Context, id int64) (domain.Article, error)
+	GetPublishedById(ctx *gin.Context, id int64, uid int64) (domain.Article, error)
 }
