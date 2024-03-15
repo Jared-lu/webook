@@ -18,8 +18,10 @@ import (
 var _ handler = (*ArticleHandler)(nil)
 
 type ArticleHandler struct {
-	svc service.ArticleService
-	l   logger.Logger
+	svc     service.ArticleService
+	l       logger.Logger
+	intrSvc service.InteractiveService
+	biz     string
 }
 
 func NewArticleHandler(svc service.ArticleService, l logger.Logger) *ArticleHandler {
@@ -53,6 +55,30 @@ func (h *ArticleHandler) RegisterRouter(server *gin.Engine) {
 		//	}
 		//}()
 	})
+
+	// 点赞是这个接口，取消点赞也是这个接口
+	// RESTful 风格
+	//pub.POST("/like/:id", ginx.WrapBodyAndToken[LikeReq,
+	//	ijwt.UserClaims](h.Like))
+	pub.POST("/like", ginx.WrapBodyAndToken[LikeReq,
+		web.JWTUserClaims](h.Like))
+}
+
+func (a *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc web.JWTUserClaims) (ginx.Result, error) {
+	var err error
+	if req.Like {
+		err = a.intrSvc.Like(ctx, a.biz, req.Id, uc.Uid)
+	} else {
+		err = a.intrSvc.CancelLike(ctx, a.biz, req.Id, uc.Uid)
+	}
+
+	if err != nil {
+		return ginx.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, err
+	}
+	return ginx.Result{Msg: "OK"}, nil
 }
 
 func (a *ArticleHandler) PubDetail(ctx *gin.Context) {
@@ -101,20 +127,19 @@ func (a *ArticleHandler) PubDetail(ctx *gin.Context) {
 	}
 
 	// 增加阅读计数。
-	//go func() {
-	//	// 你都异步了，怎么还说有巨大的压力呢？
-	//	// 开一个 goroutine，异步去执行
-	//	_, er := a.intrSvc.IncrReadCnt(ctx, &intrv1.IncrReadCntRequest{
-	//		Biz: a.biz, BizId: art.Id,
-	//	})
-	//	if er != nil {
-	//		a.l.Error("增加阅读计数失败",
-	//			logger.Int64("aid", art.Id),
-	//			logger.Error(err))
-	//	}
-	//}()
+	go func() {
+		// 你都异步了，怎么还说有巨大的压力呢？
+		// 开一个 goroutine，异步去执行
+		er := a.intrSvc.IncrReadCnt(ctx, a.biz, art.Id)
+		if er != nil {
+			a.l.Error("增加阅读计数失败",
+				logger.Int64("aid", art.Id),
+				logger.Error(err))
+		}
+	}()
 
 	// ctx.Set("art", art)
+
 	//intr := getResp.Intr
 
 	// 这个功能是不是可以让前端，主动发一个 HTTP 请求，来增加一个计数？

@@ -61,3 +61,65 @@ type PublishedArticle struct {
 
 // 另一种写法
 //type PublishedArticle Article
+
+// 正常来说，一张主表和与它有关联关系的表会共用一个DAO，
+// 所以我们就用一个 DAO 来操作
+
+// Interactive 记录文章的点赞、阅读、计数
+type Interactive struct {
+	Id         int64  `gorm:"primaryKey,autoIncrement"`
+	BizId      int64  `gorm:"uniqueIndex:biz_type_id"`
+	Biz        string `gorm:"type:varchar(128);uniqueIndex:biz_type_id"`
+	ReadCnt    int64
+	CollectCnt int64
+	// 作业：就是直接在 LikeCnt 上创建一个索引
+	// 1. 而后查询前 100 的，直接就命中索引，这样你前 100 最多 100 次回表
+	// SELECT * FROM interactives ORDER BY like_cnt limit 0, 100
+	// 还有一种优化思路是
+	// SELECT * FROM interactives WHERE like_cnt > 1000 ORDER BY like_cnt limit 0, 100
+	// 2. 如果你只需要 biz_id 和 biz_type，你就创建联合索引 <like_cnt, biz_id, biz>
+	LikeCnt int64
+	Ctime   int64
+	Utime   int64
+}
+
+// UserLikeBiz 用户点赞的某个东西,
+// 某个用户给某个资源点赞了
+// 或者看作 某个资源有某个用户点赞了
+type UserLikeBiz struct {
+	Id int64 `gorm:"primaryKey,autoIncrement"`
+	// 三个构成唯一索引
+	BizId int64  `gorm:"uniqueIndex:biz_type_id_uid"`
+	Biz   string `gorm:"type:varchar(128);uniqueIndex:biz_type_id_uid"`
+	Uid   int64  `gorm:"uniqueIndex:biz_type_id_uid"`
+	// 依旧是只在 DB 层面生效的状态
+	// 1- 有效，0-无效。软删除的用法
+	Status uint8
+	Ctime  int64
+	Utime  int64
+}
+
+// Collection 收藏夹
+type Collection struct {
+	Id   int64  `gorm:"primaryKey,autoIncrement"`
+	Name string `gorm:"type=varchar(1024)"`
+	Uid  int64  `gorm:""`
+
+	Ctime int64
+	Utime int64
+}
+
+// UserCollectionBiz 收藏的东西
+type UserCollectionBiz struct {
+	Id int64 `gorm:"primaryKey,autoIncrement"`
+	// 收藏夹 ID
+	// 作为关联关系中的外键，我们这里需要索引
+	Cid   int64  `gorm:"index"`
+	BizId int64  `gorm:"uniqueIndex:biz_type_id_uid"`
+	Biz   string `gorm:"type:varchar(128);uniqueIndex:biz_type_id_uid"`
+	// 这算是一个冗余，因为正常来说，
+	// 只需要在 Collection 中维持住 Uid 就可以
+	Uid   int64 `gorm:"uniqueIndex:biz_type_id_uid"`
+	Ctime int64
+	Utime int64
+}
