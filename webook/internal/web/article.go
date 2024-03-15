@@ -94,26 +94,29 @@ func (a *ArticleHandler) PubDetail(ctx *gin.Context) {
 	}
 
 	uc := ctx.MustGet("users").(web.JWTUserClaims)
+
 	var eg errgroup.Group
+
 	var art domain.Article
 	eg.Go(func() error {
+		// 读文章本体
 		art, err = a.svc.GetPublishedById(ctx, id, uc.Uid)
 		return err
 	})
 
-	//var getResp *intrv1.GetResponse
-	//eg.Go(func() error {
-	//	// 这个地方可以容忍错误
-	//	getResp, err = a.intrSvc.Get(ctx, &intrv1.GetRequest{
-	//		Biz: a.biz, BizId: id, Uid: uc.Id,
-	//	})
-	//	// 这种是容错的写法
-	//	//if err != nil {
-	//	//	// 记录日志
-	//	//}
-	//	//return nil
-	//	return err
-	//})
+	//var intr *intrv1.GetResponse
+	var intr domain.Interactive
+	eg.Go(func() error {
+		// 获得这篇文章的全部计数
+		intr, err = a.intrSvc.Get(ctx, a.biz, id, uc.Uid)
+		// 这种是容错的写法
+		//if err != nil {
+		//	// 记录日志
+		//}
+		// return  nil
+		
+		return err
+	})
 
 	// 在这儿等，要保证前面两个
 	err = eg.Wait()
@@ -150,14 +153,14 @@ func (a *ArticleHandler) PubDetail(ctx *gin.Context) {
 			Status:  art.Status.ToUint8(),
 			Content: art.Content,
 			// 要把作者信息带出去
-			Author: art.Author.Name,
-			Ctime:  art.Ctime.Format(time.DateTime),
-			Utime:  art.Utime.Format(time.DateTime),
-			//Liked:      intr.Liked,
-			//Collected:  intr.Collected,
-			//LikeCnt:    intr.LikeCnt,
-			//ReadCnt:    intr.ReadCnt,
-			//CollectCnt: intr.CollectCnt,
+			Author:     art.Author.Name,
+			Ctime:      art.Ctime.Format(time.DateTime),
+			Utime:      art.Utime.Format(time.DateTime),
+			Liked:      intr.Liked,
+			Collected:  intr.Collected,
+			LikeCnt:    intr.LikeCnt,
+			ReadCnt:    intr.ReadCnt,
+			CollectCnt: intr.CollectCnt,
 		},
 	})
 }

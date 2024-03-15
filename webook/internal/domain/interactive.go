@@ -10,6 +10,6 @@ type Interactive struct {
 	CollectCnt int64 `json:"collect_cnt"`
 	// 这个是当下这个资源，你有没有点赞或者收集
 	// 你也可以考虑把这两个字段分离出去，作为一个单独的结构体
-	Liked     bool `json:"liked"`
-	Collected bool `json:"collected"`
+	Liked     bool `json:"liked"`     // 有没有点赞
+	Collected bool `json:"collected"` // 有没有收藏
 }

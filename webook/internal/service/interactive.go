@@ -42,6 +42,7 @@ func (i *interactiveService) IncrReadCnt(ctx context.Context, biz string, bizId 
 	return i.repo.IncrReadCnt(ctx, biz, bizId)
 }
 
+// Get 获取文章/资源点赞、阅读、收藏计数，以及用户是否点赞或收藏了该文章/资源
 func (i *interactiveService) Get(
 	ctx context.Context, biz string,
 	bizId, uid int64) (domain.Interactive, error) {

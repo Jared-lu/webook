@@ -40,6 +40,7 @@ func (c *CachedReadCntRepository) GetByIds(ctx context.Context, biz string, ids 
 		}), nil
 }
 
+// Liked 查看是否点赞了
 func (c *CachedReadCntRepository) Liked(ctx context.Context, biz string, id int64, uid int64) (bool, error) {
 	_, err := c.dao.GetLikeInfo(ctx, biz, id, uid)
 	switch err {
@@ -52,6 +53,7 @@ func (c *CachedReadCntRepository) Liked(ctx context.Context, biz string, id int6
 	}
 }
 
+// Collected 查看是否收藏了
 func (c *CachedReadCntRepository) Collected(ctx context.Context, biz string, id int64, uid int64) (bool, error) {
 	_, err := c.dao.GetCollectionInfo(ctx, biz, id, uid)
 	switch err {
