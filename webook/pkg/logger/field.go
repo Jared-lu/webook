@@ -22,3 +22,10 @@ func Error(err error) Field {
 		Value: err,
 	}
 }
+
+func Bool(res string, val bool) Field {
+	return Field{
+		Key:   res,
+		Value: val,
+	}
+}
