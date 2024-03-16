@@ -114,7 +114,7 @@ func (a *ArticleHandler) PubDetail(ctx *gin.Context) {
 		//	// 记录日志
 		//}
 		// return  nil
-		
+
 		return err
 	})
 

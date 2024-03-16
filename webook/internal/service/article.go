@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"webook/webook/internal/domain"
+	events "webook/webook/internal/events/article"
 	"webook/webook/internal/repository"
 	"webook/webook/pkg/logger"
 )
@@ -16,19 +17,29 @@ type articleService struct {
 	reader repository.ArticleReaderRepository
 
 	l logger.Logger
+
+	producer events.Producer
 }
 
 func (a *articleService) GetPublishedById(ctx *gin.Context, id int64, uid int64) (domain.Article, error) {
 	// 另一个选项，在这里组装 Author，调用 UserService
 	art, err := a.repo.GetPublishedById(ctx, id)
 	if err == nil {
-		//go func() {
-		//	// 改批量的做法
-		//	a.ch <- readInfo{
-		//		aid: id,
-		//		uid: uid,
-		//	}
-		//}()
+		go func() {
+			// 改批量的做法
+			//a.ch <- readInfo{
+			//	aid: id,
+			//	uid: uid,
+			//}
+			er := a.producer.ProduceReadEvent(ctx, events.ReadEvent{
+				Uid: uid,
+				Aid: art.Id,
+			})
+			if er != nil {
+				// 记录日志
+			}
+		}()
+
 	}
 	return art, err
 }

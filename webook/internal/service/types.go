@@ -6,8 +6,7 @@ import (
 	"webook/webook/internal/domain"
 )
 
-//go:generate mockgen -source=./types.go -package=svcmocks -destination=./mocks/service.mock.go
-
+//go:generate mockgen -source=./types.go -package=svcmocks -destination=./mocks/service.mock.go UserService
 type UserService interface {
 	SignUp(ctx context.Context, u domain.User) error
 	Login(ctx context.Context, user domain.User) (domain.User, error)
@@ -17,12 +16,14 @@ type UserService interface {
 	FindOrCreateByWechat(ctx context.Context, info domain.WechatInfo) (domain.User, error)
 }
 
+//go:generate mockgen -source=./types.go -package=svcmocks -destination=./mocks/service.mock.go CodeService
 // CodeService 验证码服务
 type CodeService interface {
 	Send(ctx context.Context, biz string, phone string) error
 	Verify(ctx context.Context, biz string, phone string, inputCode string) (bool, error)
 }
 
+//go:generate mockgen -source=./types.go -package=svcmocks -destination=./mocks/service.mock.go ArticleService
 type ArticleService interface {
 	// Save 保存文章，并返回文章ID
 	Save(ctx context.Context, art domain.Article) (int64, error)
