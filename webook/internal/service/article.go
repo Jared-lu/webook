@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"time"
 	"webook/webook/internal/domain"
 	events "webook/webook/internal/events/article"
 	"webook/webook/internal/repository"
@@ -19,6 +20,10 @@ type articleService struct {
 	l logger.Logger
 
 	producer events.Producer
+}
+
+func (a *articleService) ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]domain.Article, error) {
+	return a.repo.ListPub(ctx, start, offset, limit)
 }
 
 func (a *articleService) GetPublishedById(ctx *gin.Context, id int64, uid int64) (domain.Article, error) {

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"time"
 	"webook/webook/internal/domain"
 )
 
@@ -16,8 +17,9 @@ type UserService interface {
 	FindOrCreateByWechat(ctx context.Context, info domain.WechatInfo) (domain.User, error)
 }
 
-//go:generate mockgen -source=./types.go -package=svcmocks -destination=./mocks/service.mock.go CodeService
 // CodeService 验证码服务
+//
+//go:generate mockgen -source=./types.go -package=svcmocks -destination=./mocks/service.mock.go CodeService
 type CodeService interface {
 	Send(ctx context.Context, biz string, phone string) error
 	Verify(ctx context.Context, biz string, phone string, inputCode string) (bool, error)
@@ -33,4 +35,5 @@ type ArticleService interface {
 	List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
 	GetById(ctx context.Context, id int64) (domain.Article, error)
 	GetPublishedById(ctx *gin.Context, id int64, uid int64) (domain.Article, error)
+	ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]domain.Article, error)
 }

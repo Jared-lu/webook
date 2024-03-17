@@ -44,7 +44,7 @@ func InitDB(l logger.Logger) *gorm.DB {
 		panic(err)
 	}
 
-	xerr = initTable(db)
+	err = initTable(db)
 	if err != nil {
 		panic(err)
 	}

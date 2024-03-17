@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"time"
 )
 
 //go:generate mockgen -source=./types.go -package=daomocks -destination=./mocks/dao.mock.go
@@ -24,6 +25,7 @@ type ArticleDAO interface {
 	GetByAuthor(ctx context.Context, authorId int64, offset int, limit int) ([]Article, error)
 	GetById(ctx context.Context, id int64) (Article, error)
 	GetPubById(ctx context.Context, id int64) (PublishedArticle, error)
+	ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]Article, error)
 }
 
 type ArticleAuthorDAO interface {

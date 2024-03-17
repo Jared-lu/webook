@@ -29,6 +29,16 @@ type CacheArticleRepository struct {
 	userRepo UserRepository
 }
 
+func (r *CacheArticleRepository) ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]domain.Article, error) {
+	res, err := r.dao.ListPub(ctx, start, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	return slice.Map(res, func(idx int, src dao.Article) domain.Article {
+		return r.toDomain(src)
+	}), nil
+}
+
 func (r *CacheArticleRepository) GetPublishedById(ctx *gin.Context, id int64) (domain.Article, error) {
 	// 读取线上库数据，如果你的 Content 被你放过去了 OSS 上，你就要让前端去读 Content 字段
 	art, err := r.dao.GetPubById(ctx, id)
