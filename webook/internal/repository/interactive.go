@@ -21,12 +21,14 @@ type InteractiveRepository interface {
 	Liked(ctx context.Context, biz string, id int64, uid int64) (bool, error)
 	Collected(ctx context.Context, biz string, id int64, uid int64) (bool, error)
 	GetByIds(ctx context.Context, biz string, ids []int64) ([]domain.Interactive, error)
+	GetTopNOfLikedCnt(ctx context.Context, biz string, n int) ([]domain.Article, error)
 }
 
 type CachedReadCntRepository struct {
-	cache cache.InteractiveCache
-	dao   dao.InteractiveDAO
-	l     logger.Logger
+	cache   cache.InteractiveCache
+	dao     dao.InteractiveDAO
+	l       logger.Logger
+	artRepo ArticleRepository
 }
 
 func (c *CachedReadCntRepository) GetByIds(ctx context.Context, biz string, ids []int64) ([]domain.Interactive, error) {
@@ -38,6 +40,27 @@ func (c *CachedReadCntRepository) GetByIds(ctx context.Context, biz string, ids 
 		func(idx int, src dao.Interactive) domain.Interactive {
 			return c.toDomain(src)
 		}), nil
+}
+
+func (c *CachedReadCntRepository) GetTopNOfLikedCnt(ctx context.Context,
+	biz string, n int) ([]domain.Article, error) {
+	// 先拿到点赞数前 N 的文章 id
+	intrs, err := c.dao.GetTopNOfLikeCnt(ctx, biz, n)
+	if err != nil {
+		return nil, err
+	}
+	var (
+		arts []domain.Article
+	)
+	// 再根据 id 拿到文章本体
+	for _, intr := range intrs {
+		art, err := c.artRepo.GetByID(ctx, intr.Id)
+		if err != nil {
+			return nil, err
+		}
+		arts = append(arts, art)
+	}
+	return arts, nil
 }
 
 // Liked 查看是否点赞了

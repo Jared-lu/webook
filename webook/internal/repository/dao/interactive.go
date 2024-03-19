@@ -19,6 +19,7 @@ type InteractiveDAO interface {
 	GetCollectionInfo(ctx context.Context, biz string, bizId, uid int64) (UserCollectionBiz, error)
 	BatchIncrReadCnt(ctx context.Context, bizs []string, ids []int64) error
 	GetByIds(ctx context.Context, biz string, ids []int64) ([]Interactive, error)
+	GetTopNOfLikeCnt(ctx context.Context, biz string, n int) ([]Interactive, error)
 }
 
 type GORMInteractiveDAO struct {
@@ -28,6 +29,12 @@ type GORMInteractiveDAO struct {
 func (dao *GORMInteractiveDAO) GetByIds(ctx context.Context, biz string, ids []int64) ([]Interactive, error) {
 	var res []Interactive
 	err := dao.db.WithContext(ctx).Where("biz = ? AND id IN ?", biz, ids).Find(&res).Error
+	return res, err
+}
+
+func (dao *GORMInteractiveDAO) GetTopNOfLikeCnt(ctx context.Context, biz string, n int) ([]Interactive, error) {
+	var res []Interactive
+	err := dao.db.WithContext(ctx).Where("biz = ?", biz).Limit(n).Find(&res).Error
 	return res, err
 }
 
