@@ -62,7 +62,7 @@ func (g *GORMJobDAO) PreemptV1(ctx context.Context, interval time.Duration) (Job
 		t := now.UnixMilli() - interval.Milliseconds()
 		err := db.WithContext(ctx).
 			// 曾经有人调度，但是后面续约失败了，那更新时间应该
-			Where("(status = ? AND next_time <=?) OR (status = ? AND utime <=?)",
+			Where("(status = ? AND next_time <=?) OR (status = ? AND utime <?)",
 				jobStatusWaiting, now, jobStatusRunning, t).
 			First(&j).Error
 		if err != nil {
