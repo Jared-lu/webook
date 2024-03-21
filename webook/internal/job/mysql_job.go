@@ -97,7 +97,6 @@ func (s *Scheduler) RegisterExecutor(exec Executor) {
 
 func (s *Scheduler) Schedule(ctx context.Context) error {
 	for {
-
 		if ctx.Err() != nil {
 			// 退出调度循环
 			return ctx.Err()

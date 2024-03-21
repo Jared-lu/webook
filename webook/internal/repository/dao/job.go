@@ -51,6 +51,42 @@ func (g *GORMJobDAO) Release(ctx context.Context, id int64) error {
 		}).Error
 }
 
+// PreemptV1 第十一次作业
+// interval 每隔 interval 就要续约一次，比如说一分钟
+func (g *GORMJobDAO) PreemptV1(ctx context.Context, interval time.Duration) (Job, error) {
+	db := g.db.WithContext(ctx)
+	for {
+		now := time.Now()
+		var j Job
+		// 任务上一次续约的最晚时间
+		t := now.UnixMilli() - interval.Milliseconds()
+		err := db.WithContext(ctx).
+			// 曾经有人调度，但是后面续约失败了，那更新时间应该
+			Where("(status = ? AND next_time <=?) OR (status = ? AND utime <=?)",
+				jobStatusWaiting, now, jobStatusRunning, t).
+			First(&j).Error
+		if err != nil {
+			// // 没有任务。从这里返回
+			return Job{}, err
+		}
+		res := db.Where("id=? AND version = ?",
+			j.Id, j.Version).Model(&Job{}).
+			Updates(map[string]any{
+				"status":  jobStatusRunning,
+				"utime":   now,
+				"version": j.Version + 1,
+			})
+		if res.Error != nil {
+			// 数据库错误
+			return Job{}, err
+		}
+		if res.RowsAffected == 0 {
+			continue
+		}
+		return j, nil
+	}
+}
+
 func (g *GORMJobDAO) Preempt(ctx context.Context) (Job, error) {
 	// 高并发情况下，大部分都是陪太子读书，走的是 res.RowsAffected == 0 分支
 	// 100 个 goroutine
