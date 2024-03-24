@@ -98,6 +98,74 @@ func (v *Validator[T]) baseToTarget(ctx context.Context) error {
 	}
 }
 
+// baseToTargetV1 第十三次作业
+func (v *Validator[T]) baseToTargetV1(ctx context.Context) error {
+	offset := 0
+	for {
+		var src []T
+		// 这里假定主键的规范都是叫做 id，基本上大部分公司都有这种规范
+		dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+		err := v.base.WithContext(dbCtx).
+			Order("id").
+			Where("utime >= ?", v.utime).
+			Offset(offset).Limit(v.batchSize).Find(&src).Error
+		cancel()
+		switch err {
+		case gorm.ErrRecordNotFound:
+			if v.sleepInterval > 0 {
+				time.Sleep(v.sleepInterval)
+				continue
+			}
+
+		case context.Canceled, context.DeadlineExceeded:
+			// 退出循环
+			return nil
+		case nil:
+			// 改为批量接口
+			v.dstDiffV1(ctx, src)
+		default:
+			v.l.Error("src => dst 查询源表失败", logger.Error(err))
+		}
+		if len(src) < v.batchSize {
+			// 数据没了
+			return nil
+		}
+		offset += v.batchSize
+	}
+}
+
+// dstDiffV1 第十三次作业
+func (v *Validator[T]) dstDiffV1(ctx context.Context, src []T) {
+	ids := slice.Map(src, func(idx int, src T) int64 {
+		return src.ID()
+	})
+
+	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+	cancel()
+	base := v.target.WithContext(dbCtx)
+	var dst []T
+	err := base.Select("id").Where("id IN ?", ids).Find(&dst).Error
+	// 这边要考虑不同的 error
+	switch err {
+	case gorm.ErrRecordNotFound:
+		v.notifyDstMissing(src)
+	case nil:
+		// 查询到了数据
+		missing := slice.DiffSetFunc(src, dst, func(src, dst T) bool {
+			return src.ID() == dst.ID()
+		})
+		v.notifyDstMissing(missing)
+	default:
+		v.l.Error("src => dst 查询目标表失败", logger.Error(err))
+	}
+}
+
+func (v *Validator[T]) notifyDstMissing(src []T) {
+	for _, t := range src {
+		v.notify(t.ID(), events.InconsistentEventTypeTargetMissing)
+	}
+}
+
 func (v *Validator[T]) dstDiff(ctx context.Context, src T) {
 	var dst T
 	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
