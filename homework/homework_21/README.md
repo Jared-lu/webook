@@ -1,73 +1,57 @@
 # 测试脚本
 
 ```shell
-k6 run --duration 10s --vus 200 k6_websocket_test.js
+k6 run --duration 10s --vus 1000 k6_websocket_test.js
 ```
 
-# 1. 调整 WebSocket 的 read buffer 和 write buffer 设置
+## 1. 调整 WebSocket 的 read buffer 和 write buffer 设置
+大小512
 
-### 其他参数
+![img.png](img.png)
 
-| 参数   | 值        |
-|------|----------|
-| 并发数  | 200      |
-| 请求大小 | 128 Byte |
-| 响应大小 | 128 Byte |
+大小1024
 
-### 测试结果
+![img_1.png](img_1.png)
 
-| ReadBufferSize | WriteBufferSize | ws_sessions | ws_connecting avg | ws_connecting p(95) | ws_session_duration avg | ws_session_duration p(95) |
-|----------------|-----------------|-------------|-------------------|---------------------|-------------------------|---------------------------|
-| 128            | 128             | 12633       | 3.41ms            | 4.49ms              | 158ms                   | 214.82ms                  |
-| 1024           | 1024            | 11880       | 5.44ms            | 5.44ms              | 168.6ms                 | 235.19ms                  |
-| 8192           | 8192            | 13840       | 5.95ms            | 122ms               | 163ms                   | 216.93ms                  |
+大小2048
 
-### 结果分析
+![img_2.png](img_2.png)
 
-修改 ReadBufferSize 和 WriteBufferSize 的值对性能影响不大。
+## 2. 调整请求和响应的大小。
+大小512
 
-# 2. 调整请求和响应的大小
+![img_3.png](img_3.png)
 
-### 其他参数
+大小1024
 
-| 参数              | 值    |
-|-----------------|------|
-| 并发数             | 200  |
-| ReadBufferSize  | 1024 |
-| WriteBufferSize | 1024 |
+![img_4.png](img_4.png)
 
-### 测试结果
+大小2048
 
-| 请求大小（Byte） | 响应大小（Byte） | ws_sessions | ws_connecting avg | ws_connecting p(95) | ws_session_duration avg | ws_session_duration p(95) |
-|------------|------------|-------------|-------------------|---------------------|-------------------------|---------------------------|
-| 128        | 128        | 11425       | 2.99ms            | 5.96ms              | 175.23ms                | 243.68ms                  |
-| 1024       | 1024       | 4878        | 5.07ms            | 43.31ms             | 414.66ms                | 604.77ms                  |
-| 8192       | 8192       | 930         | 15.78ms           | 92.81ms             | 2.34s                   | 3.08s                     |
+![img_5.png](img_5.png)
 
-### 结果分析
 
-请求和响应的大小增加后，连接的建立时间只有少量增加。和而连接的持续时间因为需要更多的时间来传递数据，所以有明显的增长。
+## 3. 调整并发数
 
-# 3. 调整并发数
+200
 
-### 其他参数
+![img_6.png](img_6.png)
 
-| 参数              | 值        |
-|-----------------|----------|
-| ReadBufferSize  | 128      |
-| WriteBufferSize | 128      |
-| 请求大小            | 128 Byte |
-| 响应大小            | 128 Byte |
+500
 
-### 测试结果
+![img_7.png](img_7.png)
 
-| 并发数  | ws_sessions | ws_connecting avg | ws_connecting p(95) | ws_session_duration avg | ws_session_duration p(95) |
-|------|-------------|-------------------|---------------------|-------------------------|---------------------------|
-| 20   | 10659       | 768.1µs           | 1.19ms              | 18.73ms                 | 46.6ms                    |
-| 200  | 12633       | 3.41ms            | 4.49ms              | 158ms                   | 214.82ms                  |
-| 2000 | 13840       | 17.9ms            | 122ms               | 1.5s                    | 2.01s                     |
+100
 
-### 结果分析
+![img_8.png](img_8.png)
 
-并发数按指数级进行增长，而吞吐量只有少量提升。 WebSocket连接的建立时间和连接的持续时间都有明显的增长。
-这是因为服务器的处理能力有限，当并发数增加时，服务器的处理能力不足，导致连接的建立时间和连接的持续时间都有明显的增长。
+2000
+
+![img_9.png](img_9.png)
+
+1000
+
+![img_10.png](img_10.png)
+
+
+
