@@ -64,7 +64,7 @@ func (b *WeightedPicker) Pick(info balancer.PickInfo) (balancer.PickResult, erro
 						b.conns = append(b.conns[:resIndex], b.conns[resIndex+1:]...)
 						b.mutex.Unlock()
 
-						// 启动 goroutine 做健康检查
+						// 健康检查
 						go func() {
 							b.healthCheck(res)
 						}()
