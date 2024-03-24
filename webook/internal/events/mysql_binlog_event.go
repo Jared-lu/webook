@@ -2,10 +2,14 @@ package events
 
 import (
 	"context"
+	"errors"
 	"github.com/IBM/sarama"
 	"time"
 	"webook/webook/internal/repository/cache"
+	"webook/webook/internal/repository/dao"
+	"webook/webook/pkg/canalx"
 	"webook/webook/pkg/logger"
+	"webook/webook/pkg/saramax"
 )
 
 type MySQLBinlogConsumer struct {

@@ -52,6 +52,7 @@ func (d *CachedRelationRepository) GetFollowStatics(ctx context.Context, uid int
 }
 
 func (d *CachedRelationRepository) InactiveFollowRelation(ctx context.Context, follower int64, followee int64) error {
+	// 去掉缓存相关操作
 	//err := d.dao.UpdateStatus(ctx, followee, follower, dao.FollowRelationStatusInactive)
 	//if err != nil {
 	//	return err
@@ -59,7 +60,7 @@ func (d *CachedRelationRepository) InactiveFollowRelation(ctx context.Context, f
 	//return d.cache.CancelFollow(ctx, follower, followee)
 	return d.dao.UpdateStatus(ctx, followee, follower, dao.FollowRelationStatusInactive)
 }
-
+1
 func (d *CachedRelationRepository) GetFollowee(ctx context.Context, follower, offset, limit int64) ([]domain.FollowRelation, error) {
 	followerList, err := d.dao.FollowRelationList(ctx, follower, offset, limit)
 	if err != nil {
@@ -85,6 +86,7 @@ func (d *CachedRelationRepository) FollowInfo(ctx context.Context, follower int6
 }
 
 func (d *CachedRelationRepository) AddFollowRelation(ctx context.Context, c domain.FollowRelation) error {
+	// 去掉缓存相关操作
 	//err := d.dao.CreateFollowRelation(ctx, d.toEntity(c))
 	//if err != nil {
 	//	return err
