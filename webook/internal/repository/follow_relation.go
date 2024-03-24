@@ -60,7 +60,7 @@ func (d *CachedRelationRepository) InactiveFollowRelation(ctx context.Context, f
 	//return d.cache.CancelFollow(ctx, follower, followee)
 	return d.dao.UpdateStatus(ctx, followee, follower, dao.FollowRelationStatusInactive)
 }
-1
+
 func (d *CachedRelationRepository) GetFollowee(ctx context.Context, follower, offset, limit int64) ([]domain.FollowRelation, error) {
 	followerList, err := d.dao.FollowRelationList(ctx, follower, offset, limit)
 	if err != nil {
