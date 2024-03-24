@@ -20,3 +20,8 @@ type UserInfo struct {
 	// 个人简介
 	Description string
 }
+
+type SearchResult struct {
+	Users    []User
+	Articles []Article
+}

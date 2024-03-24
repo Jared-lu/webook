@@ -17,6 +17,8 @@ type UserRepository interface {
 	Update(ctx context.Context, user domain.User) error
 	FindByPhone(ctx context.Context, phone string) (domain.User, error)
 	FindByWechatOpenId(ctx context.Context, OpenId string) (domain.User, error)
+	SearchUser(ctx context.Context, keywords []string) ([]domain.User, error)
+	InputUser(ctx context.Context, u domain.User) error
 }
 
 type CodeRepository interface {
@@ -36,6 +38,8 @@ type ArticleRepository interface {
 	GetByID(ctx context.Context, id int64) (domain.Article, error)
 	GetPublishedById(ctx *gin.Context, id int64) (domain.Article, error)
 	ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]domain.Article, error)
+	SearchArticle(ctx context.Context, uid int64, keywords []string) ([]domain.Article, error)
+	InputArticle(ctx context.Context, msg domain.Article) error
 }
 
 type ArticleAuthorRepository interface {
@@ -46,4 +50,16 @@ type ArticleAuthorRepository interface {
 type ArticleReaderRepository interface {
 	// Save 有就更新，没有就创建
 	Save(ctx context.Context, art domain.Article) (int64, error)
+}
+
+type CollectRepository interface {
+	InputCollect(ctx context.Context, msg domain.Collect) error
+}
+
+type LikeRepository interface {
+	InputLike(ctx context.Context, msg domain.Like) error
+}
+
+type AnyRepository interface {
+	Input(ctx context.Context, index string, docID string, data string) error
 }

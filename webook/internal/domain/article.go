@@ -10,6 +10,7 @@ type Article struct {
 	Status  ArticleStatus
 	Ctime   time.Time
 	Utime   time.Time
+	Tags    []string
 }
 
 // MarkedAsPrivate 将文章状态设置为仅自己可见

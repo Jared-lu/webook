@@ -2,14 +2,65 @@ package dao
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/ecodeclub/ekit/slice"
+	"github.com/olivere/elastic/v7"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"strconv"
+	"strings"
 	"time"
 )
 
+const ArticleIndexName = "article_index"
+const TagIndexName = "tags_index"
+
 type GORMArticleDAO struct {
-	db *gorm.DB
+	db     *gorm.DB
+	client *elastic.Client
+}
+
+func (dao *GORMArticleDAO) InputArticle(ctx context.Context, art Article) error {
+	_, err := dao.client.Index().
+		Index(ArticleIndexName).
+		Id(strconv.FormatInt(art.Id, 10)).
+		BodyJson(art).Do(ctx)
+	return err
+}
+
+func (dao *GORMArticleDAO) Search(ctx context.Context, likeIds []int64, collectIds []int64, tagIds []int64, keywords []string) ([]Article, error) {
+	queryString := strings.Join(keywords, " ")
+	anyLikeIds := slice.Map(likeIds, func(idx int, src int64) any {
+		return src
+	})
+	anyCollectIds := slice.Map(collectIds, func(idx int, src int64) any {
+		return src
+	})
+	anyTagIds := slice.Map(likeIds, func(idx int, src int64) any {
+		return src
+	})
+
+	query := elastic.NewBoolQuery().Must(
+		elastic.NewBoolQuery().Should(
+			// 按收藏、标签、点赞、其它，依次降低权重
+			elastic.NewTermsQuery("id", anyCollectIds...).Boost(4),
+			elastic.NewTermsQuery("id", anyTagIds...).Boost(3),
+			elastic.NewTermsQuery("id", anyLikeIds...).Boost(2),
+			elastic.NewMatchQuery("title", queryString),
+			elastic.NewMatchQuery("content", queryString)),
+		elastic.NewTermQuery("status", 2))
+	resp, err := dao.client.Search(ArticleIndexName).Query(query).Do(ctx)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]Article, 0, len(resp.Hits.Hits))
+	for _, hit := range resp.Hits.Hits {
+		var ele Article
+		err = json.Unmarshal(hit.Source, &ele)
+		res = append(res, ele)
+	}
+	return res, nil
 }
 
 func (dao *GORMArticleDAO) ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]Article, error) {

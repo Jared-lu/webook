@@ -27,6 +27,40 @@ type CacheArticleRepository struct {
 	l logger.Logger
 	// 组合UserRepository
 	userRepo UserRepository
+
+	tags    dao.TagDAO
+	like    dao.LikeDAO
+	collect dao.CollectDAO
+}
+
+func (r *CacheArticleRepository) SearchArticle(ctx context.Context,
+	uid int64,
+	keywords []string) ([]domain.Article, error) {
+
+	likeIds, err := r.like.Search(ctx, uid, "article")
+	collectIds, err := r.collect.Search(ctx, uid, "article")
+	tagIds, err := r.tags.Search(ctx, uid, "article", keywords)
+
+	if err != nil {
+		return nil, err
+	}
+	arts, err := r.dao.Search(ctx, likeIds, collectIds, tagIds, keywords)
+	if err != nil {
+		return nil, err
+	}
+	return slice.Map(arts, func(idx int, src dao.Article) domain.Article {
+		return domain.Article{
+			Id:      src.Id,
+			Title:   src.Title,
+			Status:  domain.ArticleStatus(src.Status),
+			Content: src.Content,
+			Tags:    src.Tags,
+		}
+	}), nil
+}
+
+func (r *CacheArticleRepository) InputArticle(ctx context.Context, msg domain.Article) error {
+	return r.dao.InputArticle(ctx, r.toEntity(msg))
 }
 
 func (r *CacheArticleRepository) ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]domain.Article, error) {

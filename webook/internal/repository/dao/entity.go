@@ -52,6 +52,7 @@ type Article struct {
 	Status   uint8
 	Ctime    int64
 	Utime    int64
+	Tags     []string `json:"tags"`
 }
 
 // PublishedArticle 代表线上库的文章

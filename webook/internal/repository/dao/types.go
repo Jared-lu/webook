@@ -15,6 +15,8 @@ type UserDAO interface {
 	Update(ctx context.Context, u User) error
 	FindByPhone(ctx context.Context, phone string) (User, error)
 	FindByWechatOpenId(ctx context.Context, openId string) (User, error)
+	Search(ctx context.Context, keywords []string) ([]User, error)
+	InputUser(ctx context.Context, u User) error
 }
 
 type ArticleDAO interface {
@@ -26,6 +28,8 @@ type ArticleDAO interface {
 	GetById(ctx context.Context, id int64) (Article, error)
 	GetPubById(ctx context.Context, id int64) (PublishedArticle, error)
 	ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]Article, error)
+	Search(ctx context.Context, likeIds []int64, collectIds []int64, tagIds []int64, keywords []string) ([]Article, error)
+	InputArticle(ctx context.Context, articl Article) error
 }
 
 type ArticleAuthorDAO interface {
@@ -36,4 +40,18 @@ type ArticleAuthorDAO interface {
 type ArticleReaderDAO interface {
 	Upsert(ctx context.Context, art Article) error
 	UpsertV2(ctx context.Context, art PublishedArticle) error
+}
+
+type CollectDAO interface {
+	InputCollect(ctx context.Context, collect Collect) error
+	Search(ctx context.Context, uid int64, biz string) ([]int64, error)
+}
+
+type LikeDAO interface {
+	InputLike(ctx context.Context, like Like) error
+	Search(ctx context.Context, uid int64, biz string) ([]int64, error)
+}
+
+type TagDAO interface {
+	Search(ctx context.Context, uid int64, biz string, keywords []string) ([]int64, error)
 }

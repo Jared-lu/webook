@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"github.com/ecodeclub/ekit/slice"
 	"time"
 	"webook/webook/internal/domain"
 	"webook/webook/internal/repository/cache"
@@ -17,6 +18,21 @@ var (
 type CacheUserRepository struct {
 	dao   dao.UserDAO
 	cache cache.UserCache
+}
+
+func (r *CacheUserRepository) SearchUser(ctx context.Context, keywords []string) ([]domain.User, error) {
+	users, err := r.dao.Search(ctx, keywords)
+	if err != nil {
+		return nil, err
+	}
+	return slice.Map(users, func(idx int, src dao.User) domain.User {
+		return r.entityToDomain(src)
+	}), nil
+}
+
+func (r *CacheUserRepository) InputUser(ctx context.Context, u domain.User) error {
+	return r.dao.InputUser(ctx, r.domainToEntity(u))
+
 }
 
 func NewUserRepository(dao dao.UserDAO, cache cache.UserCache) UserRepository {

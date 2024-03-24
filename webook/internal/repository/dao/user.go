@@ -2,11 +2,17 @@ package dao
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/go-sql-driver/mysql"
+	"github.com/olivere/elastic/v7"
 	"gorm.io/gorm"
+	"strconv"
+	"strings"
 	"time"
 )
+
+const UserIndexName = "user_index"
 
 // 错误码定义
 var (
@@ -15,7 +21,36 @@ var (
 )
 
 type GormUserDAO struct {
-	db *gorm.DB
+	db     *gorm.DB
+	client *elastic.Client
+}
+
+func (dao *GormUserDAO) Search(ctx context.Context, keywords []string) ([]User, error) {
+	// 假定上面传入的 keywords 是经过了处理的
+	queryString := strings.Join(keywords, " ")
+	query := elastic.NewBoolQuery().Must(elastic.NewMatchQuery("nickname", queryString))
+	resp, err := dao.client.Search(UserIndexName).Query(query).Do(ctx)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]User, 0, len(resp.Hits.Hits))
+	for _, hit := range resp.Hits.Hits {
+		var ele User
+		err = json.Unmarshal(hit.Source, &ele)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, ele)
+	}
+	return res, nil
+}
+
+func (dao *GormUserDAO) InputUser(ctx context.Context, u User) error {
+	_, err := dao.client.Index().
+		Index(UserIndexName).
+		Id(strconv.FormatInt(u.Id, 10)).
+		BodyJson(u).Do(ctx)
+	return err
 }
 
 func NewUserDAO(db *gorm.DB) UserDAO {
